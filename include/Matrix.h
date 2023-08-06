@@ -76,7 +76,7 @@ class MatN {
 		const float * as_ptr() const { return m_data; }
 
 	private:
-		float * m_data;
+		float * m_data = nullptr;
 		unsigned int m_col, m_row;
 
 	friend class Mat4;
@@ -140,7 +140,7 @@ class Mat2 {
 		const float * as_ptr() const { return m_data; }
 
 	private:
-		float * m_data;
+		float * m_data = nullptr;
 		unsigned int m_size;
 };
 
@@ -202,7 +202,7 @@ class Mat3 {
 		const float * as_ptr() const { return m_data; }
 
 	private:
-		float * m_data;
+		float * m_data = nullptr;
 		unsigned int m_size;
 };
 
@@ -257,6 +257,11 @@ class Mat4 {
 		Mat4 Transpose() const;
 		void Transposed();
 
+		void LookAt( const Vec3 look, const Vec3 up, const Vec3 pos );
+		void Perspective( const float verticalFOV, const float aspect, const float near, const float far );
+		void Orthographic( const float left, const float right, const float bottom, const float top );
+		void Orthographic( const float left, const float right, const float bottom, const float top, const float near, const float far );
+
 		MatN as_MatN() const;
 		Mat2 as_Mat2() const;
 		Mat3 as_Mat3() const;
@@ -264,7 +269,7 @@ class Mat4 {
 		const float * as_ptr() const { return m_data; }
 
 	private:
-		float * m_data;
+		float * m_data = nullptr;
 		unsigned int m_size;
 };
 #endif

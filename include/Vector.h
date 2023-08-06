@@ -11,6 +11,12 @@ class Vec2;
 class Vec3;
 class Vec4;
 
+#define EPSILON 0.00000001
+#define PI 3.14159265359
+
+float to_degrees( const float rads );
+float to_radians( const float deg );
+
 /*
 ================================
 VecN::VecN
@@ -67,7 +73,7 @@ class VecN {
 
 	private:		
 		unsigned int m_size;
-		float * m_data;
+		float * m_data = nullptr;
 
 	friend class MatN;
 };
@@ -130,13 +136,13 @@ class Vec2 {
 
 	private:		
 		unsigned int m_size;
-		float * m_data;
+		float * m_data = nullptr;
 };
 
 
 class Vec3 {
 	public:
-		Vec3() { m_size = 2; }
+		Vec3() { m_size = 3; m_data = new float[3]; }
 		Vec3( float n );
 		Vec3( float x, float y, float z );
 		Vec3( const float * data );
@@ -190,7 +196,7 @@ class Vec3 {
 
 	private:
 		unsigned int m_size;
-		float * m_data;
+		float * m_data = nullptr;
 };
 
 
@@ -247,7 +253,7 @@ class Vec4 {
 
 	private:
 		unsigned int m_size;
-		float * m_data;
+		float * m_data = nullptr;
 };
 
 #endif

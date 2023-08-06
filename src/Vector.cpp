@@ -3,6 +3,14 @@
 #include <math.h>
 #include "assert.h"
 
+float to_degrees( const float rads ) {
+	return ( float )(rads * 180.0 / PI);
+}
+
+float to_radians( const float deg ) {
+	return ( float )(deg * PI / 180.0);
+}
+
 /*
 ================================
 VecN
@@ -349,26 +357,26 @@ void Vec2::operator+=( const float n ) {
 
 Vec2 Vec2::operator-( Vec2 other ) const {
 	Vec2 returnVec;
-	returnVec[0] = m_data[0] + other.m_data[0];
-	returnVec[1] = m_data[1] + other.m_data[1];
+	returnVec[0] = m_data[0] - other.m_data[0];
+	returnVec[1] = m_data[1] - other.m_data[1];
 	return returnVec;
 }
 
 void Vec2::operator-=( const Vec2 other ) {
-	m_data[0] += other.m_data[0];
-	m_data[1] += other.m_data[1];
+	m_data[0] -= other.m_data[0];
+	m_data[1] -= other.m_data[1];
 }
 
 Vec2 Vec2::operator-( float n ) const {
 	Vec2 returnVec;
-	returnVec[0] = m_data[0] + n;
-	returnVec[1] = m_data[1] + n;
+	returnVec[0] = m_data[0] - n;
+	returnVec[1] = m_data[1] - n;
 	return returnVec;
 }
 
 void Vec2::operator-=( const float n ) {
-	m_data[0] += n;
-	m_data[1] += n;
+	m_data[0] -= n;
+	m_data[1] -= n;
 }
 
 Vec2 Vec2::operator*( const float n ) const {
@@ -558,30 +566,30 @@ void Vec3::operator+=( const float n ) {
 
 Vec3 Vec3::operator-( Vec3 other ) const {
 	Vec3 returnVec;
-	returnVec[0] = m_data[0] + other.m_data[0];
-	returnVec[1] = m_data[1] + other.m_data[1];
-	returnVec[2] = m_data[2] + other.m_data[2];
+	returnVec[0] = m_data[0] - other.m_data[0];
+	returnVec[1] = m_data[1] - other.m_data[1];
+	returnVec[2] = m_data[2] - other.m_data[2];
 	return returnVec;
 }
 
 void Vec3::operator-=( const Vec3 other ) {
-	m_data[0] += other.m_data[0];
-	m_data[1] += other.m_data[1];
-	m_data[2] += other.m_data[2];
+	m_data[0] -= other.m_data[0];
+	m_data[1] -= other.m_data[1];
+	m_data[2] -= other.m_data[2];
 }
 
 Vec3 Vec3::operator-( float n ) const {
 	Vec3 returnVec;
-	returnVec[0] = m_data[0] + n;
-	returnVec[1] = m_data[1] + n;
-	returnVec[2] = m_data[2] + n;
+	returnVec[0] = m_data[0] - n;
+	returnVec[1] = m_data[1] - n;
+	returnVec[2] = m_data[2] - n;
 	return returnVec;
 }
 
 void Vec3::operator-=( const float n ) {
-	m_data[0] += n;
-	m_data[1] += n;
-	m_data[2] += n;
+	m_data[0] -= n;
+	m_data[1] -= n;
+	m_data[2] -= n;
 }
 
 Vec3 Vec3::operator*( const float n ) const {
@@ -818,34 +826,34 @@ void Vec4::operator+=( const float n ) {
 
 Vec4 Vec4::operator-( Vec4 other ) const {
 	Vec4 returnVec;
-	returnVec[0] = m_data[0] + other.m_data[0];
-	returnVec[1] = m_data[1] + other.m_data[1];
-	returnVec[2] = m_data[2] + other.m_data[2];
-	returnVec[3] = m_data[3] + other.m_data[3];
+	returnVec[0] = m_data[0] - other.m_data[0];
+	returnVec[1] = m_data[1] - other.m_data[1];
+	returnVec[2] = m_data[2] - other.m_data[2];
+	returnVec[3] = m_data[3] - other.m_data[3];
 	return returnVec;
 }
 
 void Vec4::operator-=( const Vec4 other ) {
-	m_data[0] += other.m_data[0];
-	m_data[1] += other.m_data[1];
-	m_data[2] += other.m_data[2];
-	m_data[3] += other.m_data[3];
+	m_data[0] -= other.m_data[0];
+	m_data[1] -= other.m_data[1];
+	m_data[2] -= other.m_data[2];
+	m_data[3] -= other.m_data[3];
 }
 
 Vec4 Vec4::operator-( float n ) const {
 	Vec4 returnVec;
-	returnVec[0] = m_data[0] + n;
-	returnVec[1] = m_data[1] + n;
-	returnVec[2] = m_data[2] + n;
-	returnVec[3] = m_data[3] + n;
+	returnVec[0] = m_data[0] - n;
+	returnVec[1] = m_data[1] - n;
+	returnVec[2] = m_data[2] - n;
+	returnVec[3] = m_data[3] - n;
 	return returnVec;
 }
 
 void Vec4::operator-=( const float n ) {
-	m_data[0] += n;
-	m_data[1] += n;
-	m_data[2] += n;
-	m_data[3] += n;
+	m_data[0] -= n;
+	m_data[1] -= n;
+	m_data[2] -= n;
+	m_data[3] -= n;
 }
 
 Vec4 Vec4::operator*( const float n ) const {

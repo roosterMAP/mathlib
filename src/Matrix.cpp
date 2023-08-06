@@ -1043,7 +1043,7 @@ Mat4::Mat4() {
 	m_data[0] = 1.0f;
 	m_data[6] = 1.0f;
 	m_data[11] = 1.0f;
-	m_data[16] = 1.0f;
+	m_data[15] = 1.0f;
 }
 
 Mat4::Mat4( float v ) {
@@ -1388,6 +1388,84 @@ void Mat4::Transposed() {
 			m_data[ i * 4 + j ] = temp;
 		}
 	}
+}
+
+void Mat4::LookAt( const Vec3 look, const Vec3 up, const Vec3 pos ) {
+	Vec3 r = look.Cross( up ).Normal();
+	Vec3 d = look.Normal();
+	Vec3 u = up.Normal();
+
+	m_data[0] = r[0];
+	m_data[1] = r[1];
+	m_data[2] = r[2];
+	m_data[3] = -r.Dot( pos );
+
+	m_data[4] = u[0];
+	m_data[5] = u[1];
+	m_data[6] = u[2];
+	m_data[7] = -u.Dot( pos );
+
+	m_data[8] = -d[0];
+	m_data[9] = -d[1];
+	m_data[10] = -d[2];
+	m_data[11] = d.Dot( pos );
+
+	m_data[12] = 0.0f;
+	m_data[13] = 0.0f;
+	m_data[14] = 0.0f;
+	m_data[15] = 1.0f;
+}
+
+void Mat4::Perspective( const float verticalFOV, const float aspect, const float near, const float far ) {
+	const float tanHalfFOV = tanf( verticalFOV / 2.0f );
+
+	m_data[0] = 1.0f / (tanHalfFOV * aspect);
+	m_data[1] = 0.0f;
+	m_data[2] = 0.0f;
+	m_data[3] = 0.0f;
+
+	m_data[4] = 0.0f;
+	m_data[5] = 1.0f / tanHalfFOV;
+	m_data[6] = 0.0f;
+	m_data[7] = 0.0f;
+
+	m_data[8] = 0.0f;
+	m_data[9] = 0.0f;
+	m_data[10] = (-far - near) / (far - near);
+	m_data[11] = -1.0f;
+
+	m_data[12] = 0.0f;
+	m_data[13] = 0.0f;
+	m_data[14] = (-2.0f * far * near) / (far - near);
+	m_data[15] = 0.0f;
+}
+
+void Mat4::Orthographic( const float left, const float right, const float bottom, const float top ) {
+	const float near = -1.0f;
+	const float far = 1.0f;
+	Orthographic( left, right, bottom, top, near, far );
+}
+
+void Mat4::Orthographic( const float left, const float right, const float bottom, const float top, const float near, const float far ) {
+	m_data[0] = 2.0f / (right - left);
+	m_data[1] = 0.0f;
+	m_data[2] = 0.0f;
+	m_data[3] = 0.0f;
+
+	m_data[4] = 0.0f;
+	m_data[5] = 2.0f / (top - bottom);
+	m_data[6] = 0.0f;
+	m_data[7] = 0.0f;
+
+	m_data[8] = 0.0f;
+	m_data[9] = 0.0f;
+	m_data[10] = -2.0f / (far - near);
+	m_data[11] = 0.0f;
+
+	m_data[12] = (right + left) / (right - left) * -1.0f;
+	m_data[13] = (top + bottom) / (top - bottom) * -1.0f;
+	m_data[14] = (far + near) / (far - near) * -1.0f;
+	m_data[15] = 1.0f;
 }
 
 MatN Mat4::as_MatN() const {
