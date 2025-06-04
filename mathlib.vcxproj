@@ -141,12 +141,16 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="src\Bounds.cpp" />
+    <ClCompile Include="src\Geometry.cpp" />
     <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\Matrix.cpp" />
     <ClCompile Include="src\Quaternion.cpp" />
     <ClCompile Include="src\Vector.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="include\Bounds.h" />
+    <ClInclude Include="include\Geometry.h" />
     <ClInclude Include="include\Matrix.h" />
     <ClInclude Include="include\Quaternion.h" />
     <ClInclude Include="include\Vector.h" />

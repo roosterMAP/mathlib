@@ -13,9 +13,13 @@ class Vec4;
 
 #define EPSILON 0.00000001
 #define PI 3.14159265359
+#define PI2 6.283185307179586
 
 float to_degrees( const float rads );
 float to_radians( const float deg );
+Vec3 BarycentricCoordinates2D( const Vec2 &vA, const Vec2 &vB, const Vec2 &vC, const Vec2 &vP );
+Vec3 BarycentricCoordinates3D( const Vec3 &vA, const Vec3 &vB, const Vec3 &vC, const Vec3 &vP );
+Vec4 BarycentricCoordinates3DTetra( const Vec3 &vA, const Vec3 &vB, const Vec3 &vC, const Vec3 &vD, const Vec3 &vP );
 
 /*
 ================================
@@ -85,11 +89,11 @@ Vec2::Vec2
 */
 class Vec2 {
 	public:
-		Vec2() { m_size = 2; m_data = new float[2]; }
+		Vec2() { m_data[0] = 0.0f; m_data[1] = 0.0f; };
 		Vec2( float n );
 		Vec2( float x, float y );
 		Vec2( const float * data );
-		~Vec2() { delete[] m_data; }
+		~Vec2() {};
 
 		Vec2( const Vec2 &vec );
 
@@ -120,7 +124,7 @@ class Vec2 {
 		Vec2 operator/( float n ) const;
 		void operator/=( const float n );
 
-		unsigned int size() const { return m_size; }
+		unsigned int size() const { return 2; }
 		float Dot( const Vec2 & other ) const;
 		float Length() const;
 		Vec2 Normal() const;
@@ -134,19 +138,18 @@ class Vec2 {
 
 		const float * as_ptr() const { return m_data; }
 
-	private:		
-		unsigned int m_size;
-		float * m_data = nullptr;
+	private:
+		float m_data[2];
 };
 
 
 class Vec3 {
 	public:
-		Vec3() { m_size = 3; m_data = new float[3]; }
+		Vec3() { m_data[0] = 0.0f; m_data[1] = 0.0f; m_data[2] = 0.0f; };
 		Vec3( float n );
 		Vec3( float x, float y, float z );
 		Vec3( const float * data );
-		~Vec3() { delete[] m_data; }
+		~Vec3() {};
 
 		Vec3( const Vec3 &vec );
 
@@ -179,14 +182,16 @@ class Vec3 {
 		Vec3 operator/( float n ) const;
 		void operator/=( const float n );
 
-		unsigned int size() const { return m_size; }
+		unsigned int size() const { return 3; }
 		float Dot( const Vec3 & other ) const;
 		float Length() const;
+		float LengthSquared() const;
 		Vec3 Cross( const Vec3 & other ) const;
 		Vec3 Normal() const;
 		void Normalize();
 		Vec3 Proj( const Vec3 & other );
 		float Angle( const Vec3 & other );
+		void Zero() { m_data[0] = 0.0f; m_data[1] = 0.0f; m_data[2] = 0.0f; }
 
 		VecN as_VecN() const;
 		Vec2 as_Vec2() const;
@@ -195,18 +200,18 @@ class Vec3 {
 		const float * as_ptr() const { return m_data; }
 
 	private:
-		unsigned int m_size;
-		float * m_data = nullptr;
+		float m_data[3];
 };
 
 
 class Vec4 {
 	public:
-		Vec4() { m_size = 2; }
+		Vec4()  { m_data[0] = 0.0f; m_data[1] = 0.0f; m_data[2] = 0.0f; m_data[3] = 0.0f; };
 		Vec4( float n );
 		Vec4( float x, float y, float z, float w );
+		Vec4( const Vec3 &v, float w );
 		Vec4( const float * data );
-		~Vec4() { delete[] m_data; }
+		~Vec4() {};
 
 		Vec4( const Vec4 &vec );
 
@@ -237,13 +242,14 @@ class Vec4 {
 		Vec4 operator/( float n ) const;
 		void operator/=( const float n );
 
-		unsigned int size() const { return m_size; }
+		unsigned int size() const { return 4; }
 		float Dot( const Vec4 & other ) const;
 		float Length() const;
 		Vec4 Normal() const;
 		void Normalize();
 		Vec4 Proj( const Vec4 & other );
 		float Angle( const Vec4 & other );
+		void Zero() { m_data[0] = 0.0f; m_data[1] = 0.0f; m_data[2] = 0.0f; m_data[3] = 0.0f; }
 
 		VecN as_VecN() const;
 		Vec2 as_Vec2() const;
@@ -252,8 +258,7 @@ class Vec4 {
 		const float * as_ptr() const { return m_data; }
 
 	private:
-		unsigned int m_size;
-		float * m_data = nullptr;
+		float m_data[4];
 };
 
 #endif

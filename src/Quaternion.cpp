@@ -9,7 +9,6 @@ Quat::Quat
 */
 Quat::Quat() {
 	//identity quaternion
-	m_data = new float[4];
 	m_data[0] = 0.0f;
 	m_data[1] = 0.0f;
 	m_data[2] = 0.0f;
@@ -22,7 +21,6 @@ Quat::Quat
 ================================
 */
 Quat::Quat( const float n ) {
-	m_data = new float[4];
 	m_data[0] = 0.0f;
 	m_data[1] = 0.0f;
 	m_data[2] = 0.0f;
@@ -35,7 +33,6 @@ Quat::Quat
 ================================
 */
 Quat::Quat( const float x, const float y, const float z, const float w ) {
-	m_data = new float[4];
 	m_data[0] = x;
 	m_data[1] = y;
 	m_data[2] = z;
@@ -48,7 +45,6 @@ Quat::Quat
 ================================
 */
 Quat::Quat( Vec3 pos ) {
-	m_data = new float[4];
 	m_data[0] = pos[0];
 	m_data[1] = pos[1];
 	m_data[2] = pos[2];
@@ -61,12 +57,13 @@ Quat::Quat
 ================================
 */
 Quat::Quat( Vec3 axis, float radians ) {
-	const float s = sin( radians / 2.0f );
-	m_data = new float[4];
+	const float halfAngleRadians = 0.5f * radians;
+	const float s = sinf( halfAngleRadians );
+	axis.Normalize();
 	m_data[0] = axis[0] * s;
 	m_data[1] = axis[1] * s;
 	m_data[2] = axis[2] * s;
-	m_data[3] = cos( radians / 2.0f );
+	m_data[3] = cosf( halfAngleRadians );
 }
 
 /*
@@ -75,7 +72,6 @@ Quat::Quat
 ================================
 */
 Quat::Quat( const Quat &q ) {
-	m_data = new float[4];
 	m_data[0] = q[0];
 	m_data[1] = q[1];
 	m_data[2] = q[2];
@@ -140,12 +136,13 @@ Quat Quat::operator*( const float n ) const {
 Quat::operator*
 ================================
 */
-Quat Quat::operator*( const Quat other ) const {
-	const float n0 = other[3] * m_data[3] - other[0] * m_data[0] - other[1] * m_data[1] - other[2] * m_data[2];	//w
-	const float n1 = other[3] * m_data[0] + other[0] * m_data[3] - other[1] * m_data[2] + other[2] * m_data[1];	//x
-	const float n2 = other[3] * m_data[1] + other[0] * m_data[2] + other[1] * m_data[3] - other[2] * m_data[0];	//y
-	const float n3 = other[3] * m_data[2] - other[0] * m_data[1] + other[1] * m_data[0] + other[2] * m_data[3];	//z
-	return Quat( n1, n2, n3, n0 );
+Quat Quat::operator*( const Quat rhs ) const {
+	Quat temp;
+	temp[0] = ( m_data[0] * rhs[3] ) + ( m_data[3] * rhs[0] ) + ( m_data[1] * rhs[2] ) - ( m_data[2] * rhs[1] ); // x
+	temp[1] = ( m_data[1] * rhs[3] ) + ( m_data[3] * rhs[1] ) + ( m_data[2] * rhs[0] ) - ( m_data[0] * rhs[2] ); // y
+	temp[2] = ( m_data[2] * rhs[3] ) + ( m_data[3] * rhs[2] ) + ( m_data[0] * rhs[1] ) - ( m_data[1] * rhs[0] ); // z
+	temp[3] = ( m_data[3] * rhs[3] ) - ( m_data[0] * rhs[0] ) - ( m_data[1] * rhs[1] ) - ( m_data[2] * rhs[2] ); // w
+	return temp;
 }
 
 /*
@@ -203,6 +200,7 @@ void Quat::operator/=( const float n ) {
 Quat::Inverse
 ================================
 */
+/*
 Quat Quat::Inverse() const {
 	Quat q( m_data[0] * -1.0f, m_data[1] * -1.0f, m_data[2] * -1.0f, m_data[3] * -1.0f );
 	const float sum = q[0] + q[1] + q[2] + q[3];
@@ -210,6 +208,19 @@ Quat Quat::Inverse() const {
 		q[i] /= sum;
 	}
 	return q;
+}
+*/
+
+void Quat::Invert() {
+	*this *= 1.0f / LengthSquared();
+	m_data[0] *= -1.0f;
+	m_data[1] *= -1.0f;
+	m_data[2] *= -1.0f;
+}
+Quat Quat::Inverse() const {
+	Quat val( *this );
+	val.Invert();
+	return val;
 }
 
 /*
@@ -238,7 +249,17 @@ Quat::Length
 ================================
 */
 float Quat::Length() const {
-	return sqrt( m_data[0] * m_data[0] + m_data[1] * m_data[1] + m_data[2] * m_data[2] + m_data[3] * m_data[3] );
+	return sqrt( LengthSquared() );
+}
+
+
+/*
+================================
+Quat::LengthSquared
+================================
+*/
+float Quat::LengthSquared() const {
+	return m_data[0] * m_data[0] + m_data[1] * m_data[1] + m_data[2] * m_data[2] + m_data[3] * m_data[3];
 }
 
 /*
@@ -315,7 +336,7 @@ void Quat::Slerp( const Quat & qa, const Quat & qb, double t, Quat & qm ) {
 		qm[3] = qa[3];
 	}
 
-	float halfTheta = acos( cosHalfTheta );
+	float halfTheta = acosf( cosHalfTheta );
 	float sinHalfTheta = sqrt( 1.0f - cosHalfTheta * cosHalfTheta );
 
 	// if theta = 180 degrees then result is not fully defined we could rotate around any axis normal to qa or qb
@@ -326,8 +347,8 @@ void Quat::Slerp( const Quat & qa, const Quat & qb, double t, Quat & qm ) {
 		qm[3] = ( qa[3] * 0.5f + qb[3] * 0.5f );
 	}
 
-	float ratioA = sin( ( 1.0f - t ) * halfTheta ) / sinHalfTheta;
-	float ratioB = sin( t * halfTheta ) / sinHalfTheta;
+	float ratioA = sinf( ( 1.0f - t ) * halfTheta ) / sinHalfTheta;
+	float ratioB = sinf( t * halfTheta ) / sinHalfTheta;
 
 	qm[0] = ( qa[0] * ratioA + qb[0] * ratioB );
 	qm[1] = ( qa[1] * ratioA + qb[1] * ratioB );
@@ -346,4 +367,37 @@ void Quat::Rotate( const Vec3 & center, const Vec3 & axis, const float theta, Ve
 	Vec3 v = point - center;
 	rotQuat.Rotate( v );
 	point += center;
+}
+
+//GREG
+Vec3 Quat::RotatePoint( const Vec3& rhs ) const {
+	Quat vector( rhs[0], rhs[1], rhs[2], 0.0f);
+	Quat final = *this * vector * Inverse() ;
+	return Vec3( final[0], final[1], final[2]);
+}
+
+
+Mat3 Quat::as_Mat3() const
+{
+	float x = m_data[0];
+	float y = m_data[1];
+	float z = m_data[2];
+	float w = m_data[3];
+
+	float data[] = {
+		1 - 2 * ( y * y + z * z ), 2 * ( x * y - w * z ), 2 * ( x * z + w * y ),
+		2 * ( x * y + w * z ), 1 - 2 * ( x * x + z * z ), 2 * ( y * z - w * x ),
+		2 * ( x * z - w * y ), 2 * ( y * z + w * x ), 1 - 2 * ( x * x + y * y )
+	};
+
+	// Calculate the matrix elements using the quaternion components
+	return Mat3( data );
+}
+
+
+Mat4 Quat::as_Mat4( const Vec3 &vPosition ) const
+{
+	Mat4 mat = as_Mat3().as_Mat4();
+	mat.Translate( vPosition );
+	return mat;
 }

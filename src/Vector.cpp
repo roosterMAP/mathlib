@@ -3,6 +3,61 @@
 #include <math.h>
 #include "assert.h"
 
+// Returns barycentric coordinates (u, v, w) such that: P = u*A + v*B + w*C and u + v + w = 1
+Vec3 BarycentricCoordinates2D(const Vec2& vA, const Vec2& vB, const Vec2& vC, const Vec2& vP) {
+	Vec2 v0 = vB - vA;
+	Vec2 v1 = vC - vA;
+	Vec2 v2 = vP - vA;
+
+	float f00 = v0.Dot( v0 );
+	float f01 = v0.Dot( v1 );
+	float f11 = v1.Dot( v1 );
+	float f20 = v2.Dot( v0 );
+	float f21 = v2.Dot( v1 );
+
+	float denom = f00 * f11 - f01 * f01;
+	if ( denom == 0.0f )
+		return Vec3( -1.0f, -1.0f, -1.0f ); //Degenerate triangle
+
+	float v = ( f11 * f20 - f01 * f21 ) / denom;
+	float w = ( f00 * f21 - f01 * f20 ) / denom;
+	float u = 1.0f - v - w;
+	return Vec3( u, v, w );
+}
+
+Vec3 BarycentricCoordinates3D( const Vec3 &vA, const Vec3 &vB, const Vec3 &vC, const Vec3 &vP )
+{
+	Mat3 m( vA, vB, vC );
+	m.Transpose();
+
+	const float fDeterminant = m.Determinant();
+	if ( fabsf( fDeterminant ) < 1e-6 )
+		return Vec3( -1.0f, -1.0f, -1.0f ); //Degenerate triangle
+
+	const float fCofactor1 = Mat3( vP, vB, vC ).Determinant();
+	const float fCofactor2 = Mat3( vA, vP, vC ).Determinant();
+	const float fCofactor3 = Mat3( vA, vB, vP ).Determinant();
+
+	return Vec3( fCofactor1 / fDeterminant, fCofactor2 / fDeterminant, fCofactor3 / fDeterminant );
+}
+
+Vec4 BarycentricCoordinates3DTetra( const Vec3 &vA, const Vec3 &vB, const Vec3 &vC, const Vec3 &vD, const Vec3 &vP )
+{
+	Mat4 m( Vec4( vA, 1.0f ), Vec4( vB, 1.0f ), Vec4( vC, 1.0f ), Vec4( vD, 1.0f ) );
+	m.Transpose();
+
+	const float fDeterminant = m.Determinant();
+	if ( fabsf( fDeterminant ) < 1e-6 )
+		return Vec4( -1.0f, -1.0f, -1.0f, -1.0f ); //Degenerate tetrahedron
+
+	const float fCofactor1 = Mat4( Vec4( vP, 1.0f ), Vec4( vB, 1.0f ), Vec4( vC, 1.0f ), Vec4( vD, 1.0f ) ).Determinant();
+	const float fCofactor2 = Mat4( Vec4( vA, 1.0f ), Vec4( vP, 1.0f ), Vec4( vC, 1.0f ), Vec4( vD, 1.0f ) ).Determinant();
+	const float fCofactor3 = Mat4( Vec4( vA, 1.0f ), Vec4( vB, 1.0f ), Vec4( vP, 1.0f ), Vec4( vD, 1.0f ) ).Determinant();
+	const float fCofactor4 = Mat4( Vec4( vA, 1.0f ), Vec4( vB, 1.0f ), Vec4( vC, 1.0f ), Vec4( vP, 1.0f ) ).Determinant();
+
+	return Vec4( fCofactor1 / fDeterminant, fCofactor2 / fDeterminant, fCofactor3 / fDeterminant, fCofactor4 / fDeterminant );
+}
+
 float to_degrees( const float rads ) {
 	return ( float )(rads * 180.0 / PI);
 }
@@ -199,7 +254,7 @@ float VecN::Dot( const VecN & other ) const {
 }
 
 float VecN::Length() const {
-	return sqrt( Dot( *this ) );
+	return sqrtf( Dot( *this ) );
 }
 
 VecN VecN::Normal() const {
@@ -291,29 +346,21 @@ Vec2
 ================================
 */
 Vec2::Vec2( float n ) {
-	m_size = 2;
-	m_data = new float[2];
 	m_data[0] = n;
 	m_data[1] = n;
 }
 
 Vec2::Vec2( float x, float y ) {
-	m_size = 2;
-	m_data = new float[2];
 	m_data[0] = x;
 	m_data[1] = y;
 }
 
 Vec2::Vec2( const float * data ) {
-	m_size = 2;
-	m_data = new float[2];
 	m_data[0] = data[0];
 	m_data[1] = data[1];
 }
 
 Vec2::Vec2( const Vec2 &vec ) {
-	m_size = vec.m_size;
-	m_data = new float[m_size];
 	m_data[0] = vec.m_data[0];
 	m_data[1] = vec.m_data[1];
 }
@@ -392,7 +439,7 @@ void Vec2::operator*=( const float n ) {
 }
 
 Vec2 Vec2::operator*( MatN mat ) const {
-	assert( m_size == mat.RowCount() );
+	assert( mat.RowCount() == 2 );
 	Vec2 returnVec;
 	returnVec[0] = m_data[0] * mat[0] + m_data[1] * mat[2];
 	returnVec[1] = m_data[0] * mat[1] + m_data[1] * mat[3];
@@ -408,7 +455,7 @@ Vec2 Vec2::operator*( Mat2 mat ) const {
 }
 
 void Vec2::operator*=( const MatN mat ) {
-	assert( m_size == mat.RowCount() );
+	assert( mat.RowCount() == 2 );
 	const float x = m_data[0] * mat[0] + m_data[1] * mat[2];
 	const float y = m_data[0] * mat[1] + m_data[1] * mat[3];
 	m_data[0] = x;
@@ -439,7 +486,7 @@ float Vec2::Dot( const Vec2 & other ) const {
 }
 
 float Vec2::Length() const {
-	return sqrt( Dot( *this ) );
+	return sqrtf( Dot( *this ) );
 }
 
 Vec2 Vec2::Normal() const {
@@ -489,33 +536,26 @@ Vec4 Vec2::as_Vec4() const {
 Vec3
 ================================
 */
+
 Vec3::Vec3( float n ) {
-	m_size = 3;
-	m_data = new float[3];
 	m_data[0] = n;
 	m_data[1] = n;
 	m_data[2] = n;
 }
 
 Vec3::Vec3( float x, float y, float z ) {
-	m_size = 3;
-	m_data = new float[3];
 	m_data[0] = x;
 	m_data[1] = y;
 	m_data[2] = z;
 }
 
 Vec3::Vec3( const float * data ) {
-	m_size = 3;
-	m_data = new float[3];
 	m_data[0] = data[0];
 	m_data[1] = data[1];
 	m_data[2] = data[2];
 }
 
 Vec3::Vec3( const Vec3 &vec ) {
-	m_size = vec.m_size;
-	m_data = new float[m_size];
 	m_data[0] = vec.m_data[0];
 	m_data[1] = vec.m_data[1];
 	m_data[2] = vec.m_data[2];
@@ -607,7 +647,7 @@ void Vec3::operator*=( const float n ) {
 }
 
 Vec3 Vec3::operator*( MatN mat ) const {
-	assert( m_size == mat.RowCount() );
+	assert( mat.RowCount() == 3 );
 	Vec3 returnVec;
 	returnVec[0] = m_data[0] * mat[0] + m_data[1] * mat[3] + m_data[2] * mat[6];
 	returnVec[1] = m_data[0] * mat[1] + m_data[1] * mat[4] + m_data[2] * mat[7];
@@ -632,7 +672,7 @@ Vec3 Vec3::operator*( Mat4 mat ) const {
 }
 
 void Vec3::operator*=( const MatN mat ) {
-	assert( m_size == mat.RowCount() );
+	assert( mat.RowCount() == 3 );
 	const float x = m_data[0] * mat[0] + m_data[1] * mat[3] + m_data[2] * mat[6];
 	const float y = m_data[0] * mat[1] + m_data[1] * mat[4] + m_data[2] * mat[7];
 	const float z = m_data[0] * mat[2] + m_data[1] * mat[5] + m_data[2] * mat[8];
@@ -678,30 +718,41 @@ float Vec3::Dot( const Vec3 & other ) const {
 }
 
 float Vec3::Length() const {
-	return sqrt( Dot( *this ) );
+	return sqrtf( Dot( *this ) );
+}
+
+float Vec3::LengthSquared() const {
+	return Dot( *this );
 }
 
 Vec3 Vec3::Cross( const Vec3 & other ) const {
 	Vec3 returnVec;
 	returnVec[0] = m_data[1] * other[2] - m_data[2] * other[1];
 	returnVec[1] = m_data[2] * other[0] - m_data[0] * other[2];
-	returnVec[2] = m_data[0] * other[1] - m_data[1] * other[0];
+	const float foo_a = other[1];
+	const float foo_b = other[0];
+	returnVec[2] = m_data[0] * foo_a - m_data[1] * foo_b;
 	return returnVec;
 }
 
 Vec3 Vec3::Normal() const {
-	const float len = Length();
-	Vec3 returnVec;
-	returnVec[0] = m_data[0] / len;
-	returnVec[1] = m_data[1] / len;
-	returnVec[2] = m_data[2] / len;
-	return returnVec;
-
+	float len = LengthSquared();
+	if ( len < EPSILON )
+		return Vec3( 0.0f, 0.0f, 0.0f );	
+	len = sqrtf( len );
+	return Vec3( m_data[0] / len, m_data[1] / len, m_data[2] / len );
 }
 
 void Vec3::Normalize() {
-	const float len = Length();
-	Vec3 returnVec;
+	float len = LengthSquared();
+	if ( len < EPSILON )
+	{
+		m_data[0] = 0.0f;
+		m_data[1] = 0.0f;
+		m_data[2] = 0.0f;
+		return;
+	}
+	len = sqrtf( len );
 	m_data[0] /= len;
 	m_data[1] /= len;
 	m_data[2] /= len;
@@ -740,8 +791,6 @@ Vec4
 ================================
 */
 Vec4::Vec4( float n ) {
-	m_size = 4;
-	m_data = new float[4];
 	m_data[0] = n;
 	m_data[1] = n;
 	m_data[2] = n;
@@ -749,17 +798,21 @@ Vec4::Vec4( float n ) {
 }
 
 Vec4::Vec4( float x, float y, float z, float w ) {
-	m_size = 4;
-	m_data = new float[4];
 	m_data[0] = x;
 	m_data[1] = y;
 	m_data[2] = z;
 	m_data[3] = w;
 }
 
+Vec4::Vec4( const Vec3 &v, float w )
+{
+	m_data[0] = v[0];
+	m_data[1] = v[1];
+	m_data[2] = v[2];
+	m_data[3] = w;
+}
+
 Vec4::Vec4( const float * data ) {
-	m_size = 4;
-	m_data = new float[4];
 	m_data[0] = data[0];
 	m_data[1] = data[1];
 	m_data[2] = data[2];
@@ -767,8 +820,6 @@ Vec4::Vec4( const float * data ) {
 }
 
 Vec4::Vec4( const Vec4 &vec ) {
-	m_size = vec.m_size;
-	m_data = new float[m_size];
 	m_data[0] = vec.m_data[0];
 	m_data[1] = vec.m_data[1];
 	m_data[2] = vec.m_data[2];
@@ -873,7 +924,7 @@ void Vec4::operator*=( const float n ) {
 }
 
 Vec4 Vec4::operator*( MatN mat ) const {
-	assert( m_size == mat.RowCount() );
+	assert( mat.RowCount() == 4 );
 	Vec4 returnVec;
 	returnVec[0] = m_data[0] * mat[0] + m_data[1] * mat[4] + m_data[2] * mat[8] + m_data[3] * mat[12];
 	returnVec[1] = m_data[0] * mat[1] + m_data[1] * mat[5] + m_data[2] * mat[9] + m_data[3] * mat[13];
@@ -892,7 +943,7 @@ Vec4 Vec4::operator*( Mat4 mat ) const {
 }
 
 void Vec4::operator*=( const MatN mat ) {
-	assert( m_size == mat.RowCount() );
+	assert( mat.RowCount() == 4 );
 	const float x = m_data[0] * mat[0] + m_data[1] * mat[4] + m_data[2] * mat[8] + m_data[3] * mat[12];
 	const float y = m_data[0] * mat[1] + m_data[1] * mat[5] + m_data[2] * mat[9] + m_data[3] * mat[13];
 	const float z = m_data[0] * mat[2] + m_data[1] * mat[6] + m_data[2] * mat[10] + m_data[3] * mat[14];

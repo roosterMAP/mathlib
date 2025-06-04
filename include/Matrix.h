@@ -13,6 +13,23 @@ class Mat2;
 class Mat3;
 class Mat4;
 
+
+template <typename T> class SparseMat {
+	public:
+		SparseMat();
+		~SparseMat();
+
+		void AddValue( T value, unsigned int nRow, unsigned int nColumn );
+
+	private:
+		T * m_data;
+		unsigned int *m_row;
+		unsigned int *m_col;
+		unsigned int m_nCurrentSize = 0;
+		unsigned int m_nAllocatedSize = 16;
+};
+
+
 /*
 ================================
 MatN -row major matrix of arbitrary dimension
@@ -93,7 +110,7 @@ class Mat2 {
 		Mat2();
 		Mat2( float v );
 		Mat2( const float * data );
-		~Mat2() { delete[] m_data; }
+		~Mat2() {};
 
 		Mat2( const Mat2 &mat );
 
@@ -140,8 +157,7 @@ class Mat2 {
 		const float * as_ptr() const { return m_data; }
 
 	private:
-		float * m_data = nullptr;
-		unsigned int m_size;
+		float m_data[4];
 };
 
 
@@ -155,7 +171,8 @@ class Mat3 {
 		Mat3();
 		Mat3( float v );
 		Mat3( const float * data );
-		~Mat3() { delete[] m_data; }
+		Mat3( const Vec3 &vA, const Vec3 &vB, const Vec3 &vC );
+		~Mat3() {};
 
 		Mat3( const Mat3 &mat );
 
@@ -166,6 +183,7 @@ class Mat3 {
 		float operator[]( int i ) const { return m_data[i]; }
 		float & operator[]( int i ) { return m_data[i]; }
 
+		const Vec3& RowVec( const unsigned int row ) const;
 		Vec3 GetRowVec( const unsigned int row ) const;
 		void SetRowVec( const unsigned int row, const Vec3 * vec );
 
@@ -190,8 +208,9 @@ class Mat3 {
 		Mat3 operator/( float scalar ) const;
 		void operator/=( float scalar );
 
-		float Determinant();
+		float Determinant() const;
 		bool Inverse( Mat3 * inv );
+		Mat3 Inverse() const;
 		Mat3 Transpose() const;
 		void Transposed();
 
@@ -202,8 +221,7 @@ class Mat3 {
 		const float * as_ptr() const { return m_data; }
 
 	private:
-		float * m_data = nullptr;
-		unsigned int m_size;
+		float m_data[9];
 };
 
 
@@ -216,8 +234,9 @@ class Mat4 {
 	public:
 		Mat4();
 		Mat4( float v );
+		Mat4( const Vec4 &vA, const Vec4 &vB, const Vec4 &vC, const Vec4 &vD );
 		Mat4( const float * data );
-		~Mat4() { delete[] m_data; }
+		~Mat4() {};
 
 		Mat4( const Mat4 &mat );
 
@@ -256,6 +275,7 @@ class Mat4 {
 		bool Inverse( Mat4 * inv );
 		Mat4 Transpose() const;
 		void Transposed();
+		void Translate( const Vec3 &vPosition );
 
 		void LookAt( const Vec3 look, const Vec3 up, const Vec3 pos );
 		void Perspective( const float verticalFOV, const float aspect, const float near, const float far );
@@ -269,7 +289,6 @@ class Mat4 {
 		const float * as_ptr() const { return m_data; }
 
 	private:
-		float * m_data = nullptr;
-		unsigned int m_size;
+		float m_data[16];
 };
 #endif

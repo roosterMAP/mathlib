@@ -3,6 +3,7 @@
 #define __QUAT_H_INCLUDE__
 
 #include "Vector.h"
+#include "Matrix.h"
 
 class Quat {
 	public:
@@ -12,7 +13,7 @@ class Quat {
 		Quat( Vec3 pos );
 		Quat( Vec3 axis, float radians );
 		Quat( const Quat &q );
-		~Quat() { delete[] m_data; }
+		~Quat() {}
 
 		void operator=( Quat other );
 		bool  operator==( Quat other );
@@ -29,18 +30,24 @@ class Quat {
 		Quat operator/( const float n ) const;
 		void operator/=( const float n );
 
+		void Invert();
 		Quat Inverse() const;
 		void Rotate( Vec3 & v ) const;
 		float Length() const;
+		float LengthSquared() const;
 		void Normalize();
 		Quat Normal() const;
 		Quat Conjugate() const;
 		void Slerp( const Quat & qa, const Quat & qb, double t, Quat & qm );
 
+		Mat3 as_Mat3() const;
+		Mat4 as_Mat4( const Vec3 &vPosition ) const;
+
 		static void Rotate( const Vec3 & center, const Vec3 & axis, const float theta, Vec3 & point );
+		Vec3 RotatePoint( const Vec3 &rhs ) const;
 
 	private:
-		float * m_data;
+		float m_data[4];
 };
 
 /*
