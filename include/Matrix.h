@@ -12,22 +12,12 @@ class Vec4;
 class Mat2;
 class Mat3;
 class Mat4;
+class MatN;
+class Quat;
 
 
-template <typename T> class SparseMat {
-	public:
-		SparseMat();
-		~SparseMat();
-
-		void AddValue( T value, unsigned int nRow, unsigned int nColumn );
-
-	private:
-		T * m_data;
-		unsigned int *m_row;
-		unsigned int *m_col;
-		unsigned int m_nCurrentSize = 0;
-		unsigned int m_nAllocatedSize = 16;
-};
+VecN LCP_GaussSeidel( const MatN& A, const VecN& b );
+void LCP_GaussSteidelTestFunction();
 
 
 /*
@@ -46,12 +36,12 @@ class MatN {
 
 		MatN( const MatN &mat );
 
-		void operator=( MatN other );
-		bool operator==( MatN other );
-		bool operator!=( MatN other ) { return !( *this == other ); }
+		const MatN& operator=( const MatN& other );
+		bool operator==( const MatN &other );
+		bool operator!=( const MatN &other ) { return !( *this == other ); }
 
 		float operator[]( int i ) const { return m_data[i]; }
-		float & operator[]( int i ) { return m_data[i]; }
+		float &operator[]( int i ) { return m_data[i]; }
 
 		VecN GetRowVec( const unsigned int row ) const;
 		void SetRowVec( const unsigned int row, const VecN * vec );
@@ -62,18 +52,18 @@ class MatN {
 		float GetComponent( unsigned int m, unsigned int n ) const;
 		void SetComponent( unsigned int m, unsigned int n, float val );
 
-		MatN operator+( MatN other ) const;
-		void operator+=( MatN other );
+		MatN operator+( const MatN &other ) const;
+		void operator+=( const MatN &other );
 
-		MatN operator-( MatN other ) const;
-		void operator-=( MatN other );
+		MatN operator-( const MatN &other ) const;
+		void operator-=( const MatN &other );
 
 		MatN operator*( float scalar ) const;
 		void operator*=( float scalar );
-		VecN operator*( VecN vec ) const;
-		void operator*=( VecN vec );
-		MatN operator*( MatN other ) const;
-		void operator*=( MatN other );
+		VecN operator*( const VecN &vec ) const;
+		void operator*=( const VecN &vec );
+		MatN operator*( const MatN &other ) const;
+		void operator*=( const MatN &other );
 
 		MatN operator/( float scalar ) const;
 		void operator/=( float scalar );
@@ -85,6 +75,13 @@ class MatN {
 		bool Inverse( MatN * inv );
 		MatN Transpose() const;
 		void Transposed();
+		void Zero()
+		{
+			for ( unsigned int i = 0; i < m_row * m_col; i++ )
+			{
+				m_data[i] = 0.0f;
+			}
+		}
 
 		Mat2 as_Mat2() const;
 		Mat3 as_Mat3() const;
@@ -110,6 +107,7 @@ class Mat2 {
 		Mat2();
 		Mat2( float v );
 		Mat2( const float * data );
+		Mat2( const Vec2 &v1, const Vec2 &v2 );
 		~Mat2() {};
 
 		Mat2( const Mat2 &mat );
@@ -150,6 +148,8 @@ class Mat2 {
 		Mat2 Transpose() const;
 		void Transposed();
 
+		static Mat2 Rotate( const float fRadians );
+
 		MatN as_MatN() const;
 		Mat3 as_Mat3() const;
 		Mat4 as_Mat4() const;
@@ -186,9 +186,11 @@ class Mat3 {
 		const Vec3& RowVec( const unsigned int row ) const;
 		Vec3 GetRowVec( const unsigned int row ) const;
 		void SetRowVec( const unsigned int row, const Vec3 * vec );
+		void SetRowVec( const unsigned int row, const Vec3& vec );
 
 		Vec3 GetColVec( const unsigned int col ) const;
 		void SetColVec( const unsigned int col, const Vec3 * vec );
+		void SetColVec( const unsigned int col, const Vec3& vec );
 
 		float GetComponent( unsigned int m, unsigned int n ) const;
 		void SetComponent( unsigned int m, unsigned int n, float val );
@@ -214,9 +216,15 @@ class Mat3 {
 		Mat3 Transpose() const;
 		void Transposed();
 
+		bool IsOrthogonal() const;
+		bool IsOrthonormal() const;
+
 		MatN as_MatN() const;
 		Mat2 as_Mat2() const;
 		Mat4 as_Mat4() const;
+
+		static Mat3 Identity() { return Mat3(); }
+		static Mat3 Scale( const Vec3& vScale );
 
 		const float * as_ptr() const { return m_data; }
 
@@ -236,6 +244,7 @@ class Mat4 {
 		Mat4( float v );
 		Mat4( const Vec4 &vA, const Vec4 &vB, const Vec4 &vC, const Vec4 &vD );
 		Mat4( const float * data );
+		Mat4( const double* data );
 		~Mat4() {};
 
 		Mat4( const Mat4 &mat );
@@ -272,10 +281,20 @@ class Mat4 {
 		void operator/=( float scalar );
 
 		float Determinant();
-		bool Inverse( Mat4 * inv );
+		bool Inverse( Mat4 * inv ) const;
 		Mat4 Transpose() const;
 		void Transposed();
+		Vec3 GetOffset() const;
 		void Translate( const Vec3 &vPosition );
+
+		bool IsMinkowski( const Mat4 &mMetric ) const;
+
+		static Mat4 Identity() { return Mat4(); }
+		static Mat4 Position( const Vec3 &vPosition );
+		static Mat4 Scale( const Vec3 &vScale );
+		static Mat4 Diagonal( const Vec4& vDiagonal );
+		static Mat4 PosRotScl( const Vec3& vPos, const Quat& qRot, const Vec3& vScale );
+		static Mat4 Minkowski();
 
 		void LookAt( const Vec3 look, const Vec3 up, const Vec3 pos );
 		void Perspective( const float verticalFOV, const float aspect, const float near, const float far );
@@ -285,6 +304,7 @@ class Mat4 {
 		MatN as_MatN() const;
 		Mat2 as_Mat2() const;
 		Mat3 as_Mat3() const;
+		Mat3 SpatialSubMatrix() const; //extract bottom-right 3x3 submatrix
 
 		const float * as_ptr() const { return m_data; }
 

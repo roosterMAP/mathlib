@@ -1,55 +1,52 @@
 #include "..\include\Vector.h"
 #include "..\include\Matrix.h"
+#include "..\include\Quaternion.h"
 #include <assert.h>
 #include <math.h>
 #include <cstring>
 #include <cfloat>
 
-/*
-================================
-SparseMat
-================================
-*/
-template <typename T> SparseMat<T>::SparseMat()
-{
-	m_row = new unsigned int[16];
-	m_col = new unsigned int[16];
-	m_data = new T[16];
-}
 
-
-template <typename T> SparseMat<T>::~SparseMat()
-{
-	delete[] m_row;
-	delete[] m_col;
-	delete[] m_data;
-}
-
-
-template <typename T> void SparseMat<T>::AddValue( T value, unsigned int nRow, unsigned int nColumn )
-{
-	if ( m_nCurrentSize + 1 >= m_nAllocatedSize )
-	{
-		unsigned int *new_row = new unsigned int[m_nAllocatedSize * 2];
-		memccpy( new_row, m_row, m_nAllocatedSize );
-		delete[] m_row;
-		m_row = new_row;
-
-		unsigned int *new_col = new unsigned int[m_nAllocatedSize * 2];
-		memccpy( new_col, m_col, m_nAllocatedSize );
-		delete[] m_col;
-		m_row = new_col;
-
-		unsigned int *new_data = new unsigned int[m_nAllocatedSize * 2];
-		memccpy( new_data, m_data, m_nAllocatedSize );
-		delete[] m_data;
-		m_row = new_data;
+VecN LCP_GaussSeidel( const MatN& A, const VecN& b ) {
+	const int iAColCount = A.ColumnCount();
+	const int iSize = b.size();
+	VecN x( iSize, 0.0f );
+	for (int iter = 0; iter < iSize * 2; iter++) {
+		for (int i = 0; i < iSize; i++) {
+			float dx = (b[i] - A.GetRowVec( i ).Dot( x )) / A[i * iAColCount + i];
+			if (dx * 0.0f == dx * 0.0f) {
+				x[i] = x[i] + dx;
+			}
+		}
 	}
+	return x;
+}
 
-	m_row[m_nCurrentSize] = nRow;
-	m_col[m_nCurrentSize] = nColumn;
-	m_data[m_nCurrentSize] = value;
-	m_nCurrentSize += 1;
+
+void LCP_GaussSteidelTestFunction()
+{
+	//not diagonal dominant matrix
+	MatN A( 2, 2 );
+	A[0] = 1.0f;
+	A[1] = 3.0f;
+	A[2] = 4.0f;
+	A[3] = 2.0f;
+
+	VecN b( 2 );
+	b[0] = 6.0f;
+	b[1] = 7.0f;
+
+	VecN vDiverges = LCP_GaussSeidel( A, b );
+	assert( vDiverges[0] == 31.5f && vDiverges[1] == -59.50 );
+
+	//diagonal dominant matrix
+	A[0] = 3.0f,
+	A[1] = 1.0f;
+	A[2] = 2.0f;
+	A[3] = 4.0f;
+
+	VecN vConverges = LCP_GaussSeidel( A, b );
+	assert( vConverges[0] == 1.75f && vConverges[1] == 0.875f );
 }
 
 
@@ -113,7 +110,7 @@ MatN::MatN( const MatN &mat )
 	}
 }
 
-void MatN::operator=( MatN other )
+const MatN& MatN::operator=( const MatN &other )
 {
 	if ( m_col != other.m_col || m_row != other.m_row )
 	{
@@ -125,9 +122,10 @@ void MatN::operator=( MatN other )
 	{
 		m_data[i] = other.m_data[i];
 	}
+	return *this;
 }
 
-bool MatN::operator==( MatN other )
+bool MatN::operator==( const MatN &other )
 {
 	if ( m_col != other.m_col || m_row != other.m_row )
 	{
@@ -148,20 +146,16 @@ VecN MatN::GetRowVec( const unsigned int row ) const
 {
 	assert( row < m_row );
 	VecN returnVec( m_col );
-	for ( unsigned int i = 0; i < m_col; i++ )
-	{
-		returnVec[i] = m_data[row * m_col + i];
-	}
+	std::memcpy( returnVec.m_data, &m_data[row * m_col], m_col * sizeof( float ) );
 	return returnVec;
 }
 
 void MatN::SetRowVec( const unsigned int row, const VecN *vec )
 {
 	assert( row < m_row );
-	for ( unsigned int i = 0; i < m_col; i++ )
-	{
-		m_data[row * m_col + i] = ( *vec )[i];
-	}
+	assert( vec != nullptr );
+	assert( vec->m_size == m_col ); // Optional: validate matching dimensions
+	std::memcpy( &m_data[row * m_col], vec->m_data, m_col * sizeof( float ) ); // or double
 }
 
 VecN MatN::GetColVec( const unsigned int col ) const
@@ -196,7 +190,7 @@ void MatN::SetComponent( unsigned int m, unsigned int n, float val )
 	m_data[m * m_row + n] = val;
 }
 
-MatN MatN::operator+( MatN other ) const
+MatN MatN::operator+( const MatN &other ) const
 {
 	assert( m_col == other.m_col && m_row == other.m_row );
 	MatN returnMat( m_row, m_col );
@@ -207,7 +201,7 @@ MatN MatN::operator+( MatN other ) const
 	return returnMat;
 }
 
-void MatN::operator+=( MatN other )
+void MatN::operator+=( const MatN &other )
 {
 	assert( m_col == other.m_col && m_row == other.m_row );
 	for ( unsigned int i = 0; i < m_col * m_row; i++ )
@@ -216,7 +210,7 @@ void MatN::operator+=( MatN other )
 	}
 }
 
-MatN MatN::operator-( MatN other ) const
+MatN MatN::operator-( const MatN &other ) const
 {
 	assert( m_col == other.m_col && m_row == other.m_row );
 	MatN returnMat( m_row, m_col );
@@ -227,7 +221,7 @@ MatN MatN::operator-( MatN other ) const
 	return returnMat;
 }
 
-void MatN::operator-=( MatN other )
+void MatN::operator-=( const MatN &other )
 {
 	assert( m_col == other.m_col && m_row == other.m_row );
 	for ( unsigned int i = 0; i < m_col * m_row; i++ )
@@ -254,7 +248,7 @@ void MatN::operator*=( float scalar )
 	}
 }
 
-VecN MatN::operator*( VecN vec ) const
+VecN MatN::operator*( const VecN &vec ) const
 {
 	assert( m_col == vec.size() );
 	VecN returnVec( m_row );
@@ -268,7 +262,7 @@ VecN MatN::operator*( VecN vec ) const
 	return returnVec;
 }
 
-void MatN::operator*=( VecN vec )
+void MatN::operator*=( const VecN &vec )
 {
 	assert( m_col == vec.size() );
 	float *newData = new float[m_row];
@@ -284,7 +278,7 @@ void MatN::operator*=( VecN vec )
 	m_data = newData;
 }
 
-MatN MatN::operator*( MatN other ) const
+MatN MatN::operator*( const MatN &other ) const
 {
 	assert( m_col == other.m_row );
 	MatN returnMat( m_row, other.m_col );
@@ -294,14 +288,14 @@ MatN MatN::operator*( MatN other ) const
 		{
 			for ( unsigned int k = 0; k < other.m_row; k++ )
 			{
-				returnMat.m_data[i * other.m_col + j] += m_data[i * m_col + k] * other[k * other.m_col + j];
+				returnMat.m_data[i * other.m_col + j] += m_data[i * m_col + k] * other.m_data[k * other.m_col + j];
 			}
 		}
 	}
 	return returnMat;
 }
 
-void MatN::operator*=( MatN other )
+void MatN::operator*=( const MatN &other )
 {
 	assert( m_col == other.m_row );
 	float *newData = new float[m_col * m_row];
@@ -548,8 +542,8 @@ Mat2::Mat2()
 {
 	m_data[0] = 1.0f;
 	m_data[1] = 0.0f;
-	m_data[2] = 1.0f;
-	m_data[3] = 0.0f;
+	m_data[2] = 0.0f;
+	m_data[3] = 1.0f;
 }
 
 Mat2::Mat2( float v )
@@ -566,6 +560,14 @@ Mat2::Mat2( const float *data )
 	m_data[1] = data[1];
 	m_data[2] = data[2];
 	m_data[3] = data[3];
+}
+
+Mat2::Mat2( const Vec2& v1, const Vec2& v2 )
+{
+	m_data[0] = v1[0];
+	m_data[1] = v2[0];
+	m_data[2] = v1[1];
+	m_data[3] = v2[1];
 }
 
 Mat2::Mat2( const Mat2 &mat )
@@ -616,7 +618,7 @@ Vec2 Mat2::GetColVec( const unsigned int col ) const
 {
 	assert( col < 2 );
 	Vec2 returnVec;
-	returnVec[0] = m_data[col * 2];
+	returnVec[0] = m_data[col + 0 * 2 ];
 	returnVec[1] = m_data[col + 1 * 2];
 	return returnVec;
 }
@@ -707,8 +709,8 @@ Mat2 Mat2::operator*( Mat2 other ) const
 	Mat2 returnMat;
 	returnMat[0] = m_data[0] * other.m_data[0] + m_data[1] * other.m_data[2];
 	returnMat[1] = m_data[0] * other.m_data[1] + m_data[1] * other.m_data[3];
-	returnMat[2] = m_data[1] * other.m_data[0] + m_data[2] * other.m_data[2];
-	returnMat[3] = m_data[1] * other.m_data[1] + m_data[2] * other.m_data[3];
+	returnMat[2] = m_data[2] * other.m_data[0] + m_data[3] * other.m_data[2];
+	returnMat[3] = m_data[2] * other.m_data[1] + m_data[3] * other.m_data[3];
 	return returnMat;
 }
 
@@ -717,8 +719,8 @@ void Mat2::operator*=( Mat2 other )
 	float a, b, c, d;
 	a = m_data[0] * other.m_data[0] + m_data[1] * other.m_data[2];
 	b = m_data[0] * other.m_data[1] + m_data[1] * other.m_data[3];
-	c = m_data[1] * other.m_data[0] + m_data[2] * other.m_data[2];
-	d = m_data[1] * other.m_data[1] + m_data[2] * other.m_data[3];
+	c = m_data[2] * other.m_data[0] + m_data[3] * other.m_data[2];
+	d = m_data[2] * other.m_data[1] + m_data[3] * other.m_data[3];
 	m_data[0] = a;
 	m_data[1] = b;
 	m_data[2] = c;
@@ -788,6 +790,14 @@ void Mat2::Transposed()
 	}
 }
 
+Mat2 Mat2::Rotate( const float fRadians )
+{
+	const float s = sinf( fRadians );
+	const float c = cosf( fRadians );
+	const float data[4] = { c, -s, s, c };
+	return Mat2( data );
+}
+
 MatN Mat2::as_MatN() const
 {
 	MatN returnMat( 2 );
@@ -852,15 +862,9 @@ Mat3::Mat3( float v )
 
 Mat3::Mat3( const Vec3 &vA, const Vec3 &vB, const Vec3 &vC )
 {
-	m_data[0] = vA[0];
-	m_data[1] = vA[1];
-	m_data[2] = vA[2];
-	m_data[3] = vB[0];
-	m_data[4] = vB[1];
-	m_data[5] = vB[2];
-	m_data[6] = vC[0];
-	m_data[7] = vC[1];
-	m_data[8] = vC[2];
+	SetColVec( 0, vA );
+	SetColVec( 1, vB );
+	SetColVec( 2, vC );
 }
 
 Mat3::Mat3( const float *data )
@@ -918,7 +922,7 @@ Vec3 Mat3::GetRowVec( const unsigned int row ) const
 {
 	assert( row < 3 );
 	Vec3 returnVec;
-	returnVec[0] = m_data[row * 3];
+	returnVec[0] = m_data[row * 3 + 0];
 	returnVec[1] = m_data[row * 3 + 1];
 	returnVec[2] = m_data[row * 3 + 2];
 	return returnVec;
@@ -933,27 +937,43 @@ const Vec3 &Mat3::RowVec( const unsigned int row ) const
 void Mat3::SetRowVec( const unsigned int row, const Vec3 *vec )
 {
 	assert( row < 3 );
-	m_data[row * 3] = ( *vec )[0];
+	m_data[row * 3 + 0] = ( *vec )[0];
 	m_data[row * 3 + 1] = ( *vec )[1];
 	m_data[row * 3 + 2] = ( *vec )[2];
+}
+
+void Mat3::SetRowVec( const unsigned int row, const Vec3& vec )
+{
+	assert( row < 3 );
+	m_data[row * 3 + 0] = vec[0];
+	m_data[row * 3 + 1] = vec[1];
+	m_data[row * 3 + 2] = vec[2];
 }
 
 Vec3 Mat3::GetColVec( const unsigned int col ) const
 {
 	assert( col < 3 );
 	Vec3 returnVec;
-	returnVec[0] = m_data[col * 3];
+	returnVec[0] = m_data[col + 0 * 3];
 	returnVec[1] = m_data[col + 1 * 3];
-	returnVec[2] = m_data[col + 1 * 3];
+	returnVec[2] = m_data[col + 2 * 3];
 	return returnVec;
 }
 
 void Mat3::SetColVec( const unsigned int col, const Vec3 *vec )
 {
 	assert( col < 3 );
-	m_data[col * 3] = ( *vec )[0];
+	m_data[col + 0 * 3] = ( *vec )[0];
 	m_data[col + 1 * 3] = ( *vec )[1];
 	m_data[col + 2 * 3] = ( *vec )[2];
+}
+
+void Mat3::SetColVec( const unsigned int col, const Vec3& vec )
+{
+	assert( col < 3 );
+	m_data[col + 0 * 3] = vec[0];
+	m_data[col + 1 * 3] = vec[1];
+	m_data[col + 2 * 3] = vec[2];
 }
 
 float Mat3::GetComponent( unsigned int m, unsigned int n ) const
@@ -1206,6 +1226,43 @@ void Mat3::Transposed()
 	}
 }
 
+bool Mat3::IsOrthogonal() const
+{
+	Vec3 vCol1 = GetColVec( 0 );
+	Vec3 vCol2 = GetColVec( 1 );
+	Vec3 vCol3 = GetColVec( 2 );
+
+	const float fEpsilon = 1e-5f;
+
+	// Check pairwise orthogonality
+	if (fabsf( vCol1.Normal().Dot( vCol2.Normal() ) ) > fEpsilon) return false;
+	if (fabsf( vCol1.Normal().Dot( vCol3.Normal() ) ) > fEpsilon) return false;
+	if (fabsf( vCol2.Normal().Dot( vCol3.Normal() ) ) > fEpsilon) return false;
+
+	return true;
+}
+
+bool Mat3::IsOrthonormal() const
+{
+	Vec3 vCol1 = GetColVec( 0 );
+	Vec3 vCol2 = GetColVec( 1 );
+	Vec3 vCol3 = GetColVec( 2 );
+
+	const float fEpsilon = 1e-5f;
+
+	// Check pairwise orthogonality
+	if (fabsf( vCol1.Normal().Dot( vCol2.Normal() ) ) > fEpsilon) return false;
+	if (fabsf( vCol1.Normal().Dot( vCol3.Normal() ) ) > fEpsilon) return false;
+	if (fabsf( vCol2.Normal().Dot( vCol3.Normal() ) ) > fEpsilon) return false;
+
+	// Check unit length
+	if (fabsf( vCol1.Length() - 1.0f ) > fEpsilon) return false;
+	if (fabsf( vCol2.Length() - 1.0f ) > fEpsilon) return false;
+	if (fabsf( vCol3.Length() - 1.0f ) > fEpsilon) return false;
+
+	return true;
+}
+
 MatN Mat3::as_MatN() const
 {
 	MatN returnMat( 3 );
@@ -1253,6 +1310,15 @@ Mat4 Mat3::as_Mat4() const
 	return returnMat;
 }
 
+Mat3 Mat3::Scale( const Vec3& vScale )
+{
+	Mat3 m;
+	m[0] = vScale[0];
+	m[4] = vScale[1];
+	m[8] = vScale[2];
+	return m;
+}
+
 
 /*
 ================================
@@ -1281,22 +1347,10 @@ Mat4::Mat4( float v )
 
 Mat4::Mat4( const Vec4 &vA, const Vec4 &vB, const Vec4 &vC, const Vec4 &vD )
 {
-	m_data[0] = vA[0];
-	m_data[1] = vA[1];
-	m_data[2] = vA[2];
-	m_data[3] = vA[3];
-	m_data[4] = vB[0];
-	m_data[5] = vB[1];
-	m_data[6] = vB[2];
-	m_data[7] = vB[3];
-	m_data[8] = vC[0];
-	m_data[9] = vC[1];
-	m_data[10] = vC[2];
-	m_data[11] = vC[3];
-	m_data[12] = vD[0];
-	m_data[13] = vD[1];
-	m_data[14] = vD[2];
-	m_data[15] = vD[3];
+	SetColVec( 0, &vA );
+	SetColVec( 1, &vB );
+	SetColVec( 2, &vC );
+	SetColVec( 3, &vD );
 }
 
 Mat4::Mat4( const float *data )
@@ -1304,6 +1358,14 @@ Mat4::Mat4( const float *data )
 	for ( unsigned int i = 0; i < 16; i++ )
 	{
 		m_data[i] = data[i];
+	}
+}
+
+Mat4::Mat4( const double* data )
+{
+	for (unsigned int i = 0; i < 16; i++)
+	{
+		m_data[i] = (float)(data[i] );
 	}
 }
 
@@ -1369,10 +1431,10 @@ Vec4 Mat4::GetColVec( const unsigned int col ) const
 void Mat4::SetColVec( const unsigned int col, const Vec4 *vec )
 {
 	assert( col < 4 );
-	m_data[col * 4] = ( *vec )[0];
-	m_data[col + 1 * 4] = ( *vec )[1];
-	m_data[col + 2 * 4] = ( *vec )[2];
-	m_data[col + 3 * 4] = ( *vec )[3];
+	m_data[0 * 4 + col] = (*vec)[0];  // row 0
+	m_data[1 * 4 + col] = (*vec)[1];  // row 1
+	m_data[2 * 4 + col] = (*vec)[2];  // row 2
+	m_data[3 * 4 + col] = (*vec)[3];  // row 3
 }
 
 float Mat4::GetComponent( unsigned int m, unsigned int n ) const
@@ -1555,79 +1617,132 @@ float Mat4::Determinant()
 		m_data[1] * m_data[4] * m_data[10] * m_data[15] + m_data[0] * m_data[5] * m_data[10] * m_data[15];
 }
 
-bool Mat4::Inverse( Mat4 *inv )
+bool Mat4::Inverse( Mat4* inv ) const
 {
-//2x2 sub-determinants required to calculate 4x4 determinant
-	float det2_01_01 = m_data[0] * m_data[5] - m_data[1] * m_data[4];
-	float det2_01_02 = m_data[0] * m_data[6] - m_data[2] * m_data[4];
-	float det2_01_03 = m_data[0] * m_data[8] - m_data[3] * m_data[4];
-	float det2_01_12 = m_data[1] * m_data[6] - m_data[2] * m_data[5];
-	float det2_01_13 = m_data[1] * m_data[7] - m_data[3] * m_data[5];
-	float det2_01_23 = m_data[2] * m_data[7] - m_data[3] * m_data[6];
+	const float* m = m_data;
+	float* o = inv->m_data;
 
-	//3x3 sub-determinants required to calculate 4x4 determinant
-	float det3_201_012 = m_data[8] * det2_01_12 - m_data[9] * det2_01_02 + m_data[10] * det2_01_01;
-	float det3_201_013 = m_data[8] * det2_01_13 - m_data[9] * det2_01_03 + m_data[11] * det2_01_01;
-	float det3_201_023 = m_data[8] * det2_01_23 - m_data[10] * det2_01_03 + m_data[11] * det2_01_02;
-	float det3_201_123 = m_data[9] * det2_01_23 - m_data[10] * det2_01_13 + m_data[11] * det2_01_12;
+	o[0] = m[5] * m[10] * m[15] -
+		m[5] * m[11] * m[14] -
+		m[9] * m[6] * m[15] +
+		m[9] * m[7] * m[14] +
+		m[13] * m[6] * m[11] -
+		m[13] * m[7] * m[10];
 
-	const float det = ( -det3_201_123 * m_data[12] + det3_201_023 * m_data[13] - det3_201_013 * m_data[14] + det3_201_012 * m_data[15] );
+	o[1] = -m[1] * m[10] * m[15] +
+		m[1] * m[11] * m[14] +
+		m[9] * m[2] * m[15] -
+		m[9] * m[3] * m[14] -
+		m[13] * m[2] * m[11] +
+		m[13] * m[3] * m[10];
 
-	if ( ( fabsf( det ) < FLT_EPSILON ) )
-	{
+	o[2] = m[1] * m[6] * m[15] -
+		m[1] * m[7] * m[14] -
+		m[5] * m[2] * m[15] +
+		m[5] * m[3] * m[14] +
+		m[13] * m[2] * m[7] -
+		m[13] * m[3] * m[6];
+
+	o[3] = -m[1] * m[6] * m[11] +
+		m[1] * m[7] * m[10] +
+		m[5] * m[2] * m[11] -
+		m[5] * m[3] * m[10] -
+		m[9] * m[2] * m[7] +
+		m[9] * m[3] * m[6];
+
+	o[4] = -m[4] * m[10] * m[15] +
+		m[4] * m[11] * m[14] +
+		m[8] * m[6] * m[15] -
+		m[8] * m[7] * m[14] -
+		m[12] * m[6] * m[11] +
+		m[12] * m[7] * m[10];
+
+	o[5] = m[0] * m[10] * m[15] -
+		m[0] * m[11] * m[14] -
+		m[8] * m[2] * m[15] +
+		m[8] * m[3] * m[14] +
+		m[12] * m[2] * m[11] -
+		m[12] * m[3] * m[10];
+
+	o[6] = -m[0] * m[6] * m[15] +
+		m[0] * m[7] * m[14] +
+		m[4] * m[2] * m[15] -
+		m[4] * m[3] * m[14] -
+		m[12] * m[2] * m[7] +
+		m[12] * m[3] * m[6];
+
+	o[7] = m[0] * m[6] * m[11] -
+		m[0] * m[7] * m[10] -
+		m[4] * m[2] * m[11] +
+		m[4] * m[3] * m[10] +
+		m[8] * m[2] * m[7] -
+		m[8] * m[3] * m[6];
+
+	o[8] = m[4] * m[9] * m[15] -
+		m[4] * m[11] * m[13] -
+		m[8] * m[5] * m[15] +
+		m[8] * m[7] * m[13] +
+		m[12] * m[5] * m[11] -
+		m[12] * m[7] * m[9];
+
+	o[9] = -m[0] * m[9] * m[15] +
+		m[0] * m[11] * m[13] +
+		m[8] * m[1] * m[15] -
+		m[8] * m[3] * m[13] -
+		m[12] * m[1] * m[11] +
+		m[12] * m[3] * m[9];
+
+	o[10] = m[0] * m[5] * m[15] -
+		m[0] * m[7] * m[13] -
+		m[4] * m[1] * m[15] +
+		m[4] * m[3] * m[13] +
+		m[12] * m[1] * m[7] -
+		m[12] * m[3] * m[5];
+
+	o[11] = -m[0] * m[5] * m[11] +
+		m[0] * m[7] * m[9] +
+		m[4] * m[1] * m[11] -
+		m[4] * m[3] * m[9] -
+		m[8] * m[1] * m[7] +
+		m[8] * m[3] * m[5];
+
+	o[12] = -m[4] * m[9] * m[14] +
+		m[4] * m[10] * m[13] +
+		m[8] * m[5] * m[14] -
+		m[8] * m[6] * m[13] -
+		m[12] * m[5] * m[10] +
+		m[12] * m[6] * m[9];
+
+	o[13] = m[0] * m[9] * m[14] -
+		m[0] * m[10] * m[13] -
+		m[8] * m[1] * m[14] +
+		m[8] * m[2] * m[13] +
+		m[12] * m[1] * m[10] -
+		m[12] * m[2] * m[9];
+
+	o[14] = -m[0] * m[5] * m[14] +
+		m[0] * m[6] * m[13] +
+		m[4] * m[1] * m[14] -
+		m[4] * m[2] * m[13] -
+		m[12] * m[1] * m[6] +
+		m[12] * m[2] * m[5];
+
+	o[15] = m[0] * m[5] * m[10] -
+		m[0] * m[6] * m[9] -
+		m[4] * m[1] * m[10] +
+		m[4] * m[2] * m[9] +
+		m[8] * m[1] * m[6] -
+		m[8] * m[2] * m[5];
+
+	float det = m[0] * o[0] + m[1] * o[4] + m[2] * o[8] + m[3] * o[12];
+
+	if (fabsf( det ) < FLT_EPSILON)
 		return false;
-	}
 
-	//remaining 2x2 sub-determinants
-	float det2_03_01 = m_data[0] * m_data[13] - m_data[1] * m_data[12];
-	float det2_03_02 = m_data[0] * m_data[14] - m_data[2] * m_data[12];
-	float det2_03_03 = m_data[0] * m_data[15] - m_data[3] * m_data[12];
-	float det2_03_12 = m_data[1] * m_data[14] - m_data[2] * m_data[13];
-	float det2_03_13 = m_data[1] * m_data[15] - m_data[3] * m_data[13];
-	float det2_03_23 = m_data[2] * m_data[15] - m_data[3] * m_data[14];
+	float inv_det = 1.0f / det;
 
-	float det2_13_01 = m_data[4] * m_data[13] - m_data[5] * m_data[12];
-	float det2_13_02 = m_data[4] * m_data[14] - m_data[6] * m_data[12];
-	float det2_13_03 = m_data[4] * m_data[15] - m_data[7] * m_data[12];
-	float det2_13_12 = m_data[5] * m_data[14] - m_data[6] * m_data[13];
-	float det2_13_13 = m_data[5] * m_data[15] - m_data[7] * m_data[13];
-	float det2_13_23 = m_data[6] * m_data[15] - m_data[7] * m_data[13];
-
-	//remaining 3x3 sub-determinants
-	float det3_203_012 = m_data[8] * det2_03_12 - m_data[9] * det2_03_02 + m_data[10] * det2_03_01;
-	float det3_203_013 = m_data[8] * det2_03_13 - m_data[9] * det2_03_03 + m_data[11] * det2_03_01;
-	float det3_203_023 = m_data[8] * det2_03_23 - m_data[10] * det2_03_03 + m_data[11] * det2_03_02;
-	float det3_203_123 = m_data[9] * det2_03_23 - m_data[10] * det2_03_13 + m_data[11] * det2_03_12;
-
-	float det3_213_012 = m_data[8] * det2_13_12 - m_data[9] * det2_13_02 + m_data[10] * det2_13_01;
-	float det3_213_013 = m_data[8] * det2_13_13 - m_data[9] * det2_13_03 + m_data[11] * det2_13_01;
-	float det3_213_023 = m_data[8] * det2_13_23 - m_data[10] * det2_13_03 + m_data[11] * det2_13_02;
-	float det3_213_123 = m_data[9] * det2_13_23 - m_data[10] * det2_13_13 + m_data[11] * det2_13_12;
-
-	float det3_301_012 = m_data[12] * det2_01_12 - m_data[13] * det2_01_02 + m_data[14] * det2_01_01;
-	float det3_301_013 = m_data[12] * det2_01_13 - m_data[13] * det2_01_03 + m_data[15] * det2_01_01;
-	float det3_301_023 = m_data[12] * det2_01_23 - m_data[13] * det2_01_03 + m_data[15] * det2_01_02;
-	float det3_301_123 = m_data[13] * det2_01_23 - m_data[14] * det2_01_13 + m_data[15] * det2_01_12;
-
-	( *inv )[0] = -det3_213_123 / det;
-	( *inv )[1] = det3_213_023 / det;
-	( *inv )[2] = -det3_213_013 / det;
-	( *inv )[3] = det3_213_012 / det;
-
-	( *inv )[4] = det3_203_123 / det;
-	( *inv )[5] = -det3_203_023 / det;
-	( *inv )[6] = det3_203_013 / det;
-	( *inv )[7] = -det3_203_012 / det;
-
-	( *inv )[8] = det3_301_123 / det;
-	( *inv )[9] = -det3_301_023 / det;
-	( *inv )[10] = det3_301_013 / det;
-	( *inv )[11] = -det3_301_012 / det;
-
-	( *inv )[12] = -det3_201_123 / det;
-	( *inv )[13] = det3_201_023 / det;
-	( *inv )[14] = -det3_201_013 / det;
-	( *inv )[15] = det3_201_012 / det;
+	for (int i = 0; i < 16; i++)
+		o[i] *= inv_det;
 
 	return true;
 }
@@ -1680,9 +1795,32 @@ void Mat4::Translate( const Vec3 &vPosition )
 
 }
 
+bool Mat4::IsMinkowski( const Mat4& mMetric ) const
+{
+	const float fEpsilon = 1e-5f;
+
+	// Check spatial part is orthonormal
+	Mat3 mSpatial = SpatialSubMatrix();
+	if (!mSpatial.IsOrthonormal())
+		return false;
+
+	// Check timelike vector has correct norm
+	Vec4 vTime = GetColVec( 0 );
+	float fTimeNorm2 = vTime.Dot( vTime * mMetric );
+
+	if (fabsf( fTimeNorm2 + 1.0f ) > fEpsilon) return false; // -1 for timelike
+
+	return true;
+}
+
+Vec3 Mat4::GetOffset() const
+{
+	return Vec3( m_data[3], m_data[7], m_data[11]);
+}
+
 void Mat4::LookAt( const Vec3 look, const Vec3 up, const Vec3 pos )
 {
-	Vec3 r = look.Cross( up ).Normal();
+	Vec3 r = up.Cross( look ).Normal();
 	Vec3 d = look.Normal();
 	Vec3 u = up.Normal();
 
@@ -1696,10 +1834,10 @@ void Mat4::LookAt( const Vec3 look, const Vec3 up, const Vec3 pos )
 	m_data[6] = u[2];
 	m_data[7] = -u.Dot( pos );
 
-	m_data[8] = -d[0];
-	m_data[9] = -d[1];
-	m_data[10] = -d[2];
-	m_data[11] = d.Dot( pos );
+	m_data[8] = d[0];
+	m_data[9] = d[1];
+	m_data[10] = d[2];
+	m_data[11] = -d.Dot( pos );
 
 	m_data[12] = 0.0f;
 	m_data[13] = 0.0f;
@@ -1712,23 +1850,23 @@ void Mat4::Perspective( const float verticalFOV, const float aspect, const float
 	const float tanHalfFOV = tanf( verticalFOV / 2.0f );
 
 	m_data[0] = 1.0f / ( tanHalfFOV * aspect );
-	m_data[1] = 0.0f;
-	m_data[2] = 0.0f;
-	m_data[3] = 0.0f;
-
 	m_data[4] = 0.0f;
-	m_data[5] = 1.0f / tanHalfFOV;
-	m_data[6] = 0.0f;
-	m_data[7] = 0.0f;
-
 	m_data[8] = 0.0f;
-	m_data[9] = 0.0f;
-	m_data[10] = ( -far - near ) / ( far - near );
-	m_data[11] = -1.0f;
-
 	m_data[12] = 0.0f;
+
+	m_data[1] = 0.0f;
+	m_data[5] = 1.0f / tanHalfFOV;
+	m_data[9] = 0.0f;
 	m_data[13] = 0.0f;
-	m_data[14] = ( -2.0f * far * near ) / ( far - near );
+
+	m_data[2] = 0.0f;
+	m_data[6] = 0.0f;
+	m_data[10] = (-far - near) / (far - near);
+	m_data[14] = (-2.0f * far * near) / (far - near);
+
+	m_data[3] = 0.0f;
+	m_data[7] = 0.0f;
+	m_data[11] = -1.0f;
 	m_data[15] = 0.0f;
 }
 
@@ -1792,4 +1930,60 @@ Mat3 Mat4::as_Mat3() const
 	returnMat[7] = m_data[9];
 	returnMat[8] = m_data[10];
 	return returnMat;
+}
+
+//extract bottom-right 3x3 submatrix
+Mat3 Mat4::SpatialSubMatrix() const
+{
+	Mat3 returnMat;
+	returnMat.SetColVec( 0, GetColVec( 1 ).YZW() );
+	returnMat.SetColVec( 1, GetColVec( 2 ).YZW() );
+	returnMat.SetColVec( 2, GetColVec( 3 ).YZW() );
+	return returnMat;
+}
+
+Mat4 Mat4::Position( const Vec3& vPosition )
+{
+	Mat4 m;
+	m.Translate( vPosition );
+	return m;
+}
+
+Mat4 Mat4::Scale( const Vec3& vScale )
+{
+	Mat4 m;
+	m[0] = vScale[0];
+	m[5] = vScale[1];
+	m[10] = vScale[2];
+	return m;
+}
+
+
+Mat4 Mat4::Diagonal( const Vec4& vDiagonal )
+{
+	Mat4 m;
+	m[0] = vDiagonal[0];
+	m[5] = vDiagonal[1];
+	m[10] = vDiagonal[2];
+	m[15] = vDiagonal[3];
+	return m;
+}
+
+
+Mat4 Mat4::PosRotScl( const Vec3& vPos, const Quat& qRot, const Vec3& vScale )
+{
+	Mat4 mPos = Mat4::Position( vPos );
+	Mat4 mRot = qRot.as_Mat3().as_Mat4();
+	Mat4 mScl = Mat4::Scale( vScale );
+	return mRot * mScl * mPos;
+}
+
+Mat4 Mat4::Minkowski()
+{
+	Mat4 m;
+	m[0] = -1.0f;
+	m[5] = 1.0f;
+	m[10] = 1.0f;
+	m[15] = 1.0f;
+	return m;
 }

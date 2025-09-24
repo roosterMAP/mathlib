@@ -36,27 +36,27 @@ class VecN {
 
 		VecN( const VecN &vec );
 
-		void operator=( VecN other );
-		bool operator==( VecN other );
-		bool operator!=( VecN other ) { return !( *this == other ); }
+		VecN& operator=( const VecN& rhs );
+		bool operator==( const VecN &other ) const;
+		bool operator!=( const VecN &other ) const { return !( *this == other ); }
 
-		float operator[]( int index ) const { return m_data[index]; }
-		float & operator[]( int index ) { return m_data[index]; }
+		float operator[]( const int index ) const { return m_data[index]; }
+		float & operator[]( const int index ) { return m_data[index]; }
 
-		VecN operator+( VecN other ) const;
+		VecN operator+( const VecN &other ) const;
 		VecN operator+( float n ) const;
-		void operator+=( const VecN other );
+		void operator+=( const VecN &other );
 		void operator+=( const float n );
 
-		VecN operator-( VecN other ) const;
+		VecN operator-( const VecN &other ) const;
 		VecN operator-( float n ) const;
-		void operator-=( const VecN other );
+		void operator-=( const VecN &other );
 		void operator-=( const float n );
 
 		VecN operator*( const float n ) const;
-		VecN operator*( MatN mat ) const;
+		VecN operator*( const MatN &mat ) const;
 		void operator*=( const float n );
-		void operator*=( const MatN mat );
+		void operator*=( const MatN &mat );
 
 		VecN operator/( float n ) const;
 		void operator/=( const float n );
@@ -68,6 +68,7 @@ class VecN {
 		void Normalize();
 		VecN Proj( const VecN & other );
 		float Angle( const VecN & other );
+		void Zero();
 
 		Vec2 as_Vec2() const;
 		Vec3 as_Vec3() const;
@@ -98,8 +99,8 @@ class Vec2 {
 		Vec2( const Vec2 &vec );
 
 		void operator=( Vec2 other );
-		bool operator==( Vec2 other );
-		bool operator!=( Vec2 other ) { return !( *this == other ); }
+		bool operator==( const Vec2 &other ) const;
+		bool operator!=( const Vec2 &other ) const { return !( *this == other ); }
 
 		float operator[]( int index ) const { return m_data[index]; }
 		float & operator[]( int index ) { return m_data[index]; }
@@ -127,14 +128,19 @@ class Vec2 {
 		unsigned int size() const { return 2; }
 		float Dot( const Vec2 & other ) const;
 		float Length() const;
+		float LengthSquared() const { return m_data[0] * m_data[0] + m_data[1] * m_data[1]; }
 		Vec2 Normal() const;
 		void Normalize();
 		Vec2 Proj( const Vec2 & other );
 		float Angle( const Vec2 & other );
+		void Zero() { m_data[0] = 0.0f; m_data[1] = 0.0f; }
 
 		VecN as_VecN() const;
 		Vec3 as_Vec3() const;
 		Vec4 as_Vec4() const;
+
+		static Vec2 X() { return Vec2( 1.0f, 0.0f ); }
+		static Vec2 Y() { return Vec2( 0.0f, 1.0f ); }
 
 		const float * as_ptr() const { return m_data; }
 
@@ -148,36 +154,37 @@ class Vec3 {
 		Vec3() { m_data[0] = 0.0f; m_data[1] = 0.0f; m_data[2] = 0.0f; };
 		Vec3( float n );
 		Vec3( float x, float y, float z );
+		Vec3( const float f, const Vec2& vec );
 		Vec3( const float * data );
 		~Vec3() {};
 
 		Vec3( const Vec3 &vec );
 
 		void operator=( Vec3 other );
-		bool operator==( Vec3 other );
-		bool operator!=( Vec3 other ) { return !( *this == other ); }
+		bool operator==( const Vec3 &other ) const;
+		bool operator!=( const Vec3 &other ) const { return !( *this == other ); }
 
 		float operator[]( int index ) const { return m_data[index]; }
 		float & operator[]( int index ) { return m_data[index]; }
 
-		Vec3 operator+( Vec3 other ) const;
+		Vec3 operator+( const Vec3& other ) const;
 		Vec3 operator+( float n ) const;
-		void operator+=( const Vec3 other );
+		void operator+=( const Vec3& other );
 		void operator+=( const float n );
 
-		Vec3 operator-( Vec3 other ) const;
-		Vec3 operator-( float n ) const;
-		void operator-=( const Vec3 other );
+		Vec3 operator-( const Vec3 &other ) const;
+		Vec3 operator-( const float n ) const;
+		void operator-=( const Vec3 &other );
 		void operator-=( const float n );
 
 		Vec3 operator*( const float n ) const;
-		Vec3 operator*( MatN mat ) const;
-		Vec3 operator*( Mat3 mat ) const;
-		Vec3 operator*( Mat4 mat ) const;
+		Vec3 operator*( const MatN &mat ) const;
+		Vec3 operator*( const Mat3 &mat ) const;
+		Vec3 operator*( const Mat4 &mat ) const;
 		void operator*=( const float n );
-		void operator*=( const MatN mat );
-		void operator*=( const Mat3 mat );
-		void operator*=( const Mat4 mat );
+		void operator*=( const MatN &mat );
+		void operator*=( const Mat3 &mat );
+		void operator*=( const Mat4 &mat );
 
 		Vec3 operator/( float n ) const;
 		void operator/=( const float n );
@@ -192,11 +199,19 @@ class Vec3 {
 		Vec3 Proj( const Vec3 & other );
 		float Angle( const Vec3 & other );
 		void Zero() { m_data[0] = 0.0f; m_data[1] = 0.0f; m_data[2] = 0.0f; }
+		bool AlmostEqual( const Vec3& other, float epsilon = EPSILON ) const;
+		Vec3 GetOrthogonal() const;
+		bool IsValid() const;
 
 		VecN as_VecN() const;
 		Vec2 as_Vec2() const;
 		Vec4 as_Vec4() const;
+		Vec2 YZ() const { return Vec2( m_data[1], m_data[2] ); }
 
+		static Vec3 X() { return Vec3( 1.0f, 0.0f, 0.0f ); }
+		static Vec3 Y() { return Vec3( 0.0f, 1.0f, 0.0f ); }
+		static Vec3 Z() { return Vec3( 0.0f, 0.0f, 1.0f ); }
+	
 		const float * as_ptr() const { return m_data; }
 
 	private:
@@ -211,13 +226,14 @@ class Vec4 {
 		Vec4( float x, float y, float z, float w );
 		Vec4( const Vec3 &v, float w );
 		Vec4( const float * data );
+		Vec4( const float f, const Vec3& vec );
 		~Vec4() {};
 
 		Vec4( const Vec4 &vec );
 
 		void operator=( Vec4 other );
-		bool operator==( Vec4 other );
-		bool operator!=( Vec4 other ) { return !( *this == other ); }
+		bool operator==( const Vec4 &other ) const;
+		bool operator!=( const Vec4 &other ) const { return !( *this == other ); }
 
 		float operator[]( int index ) const { return m_data[index]; }
 		float & operator[]( int index ) { return m_data[index]; }
@@ -254,6 +270,7 @@ class Vec4 {
 		VecN as_VecN() const;
 		Vec2 as_Vec2() const;
 		Vec3 as_Vec3() const;
+		Vec3 YZW() const { return Vec3( m_data[1], m_data[2], m_data[3]); }
 
 		const float * as_ptr() const { return m_data; }
 

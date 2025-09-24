@@ -223,6 +223,31 @@ Quat Quat::Inverse() const {
 	return val;
 }
 
+
+/*
+================================
+Quat::Rotate
+	-Rotate vector(not point) by quaternion.
+================================
+*/
+Vec3 Quat::RotateVector( const Vec3& v ) const
+{
+	Quat q( v );
+	q = *this * q * this->Conjugate();
+	return Vec3( q[0], q[1], q[2] );
+}
+
+Vec3 Quat::RotateVector_Fast( const Vec3& v ) const
+{
+	Vec3 u( m_data[0], m_data[1], m_data[2] );
+	float s = m_data[3];
+
+	const float uv = u.Dot( v );
+	const float uu = u.Dot( u );
+
+	return ( u * uv * 2.0 ) + v * ( s * s - uu ) + u.Cross( v ) * s * 2.0f;
+}
+
 /*
 ================================
 Quat::Rotate
@@ -231,16 +256,11 @@ Quat::Rotate
 */
 void Quat::Rotate( Vec3 & v ) const {
 	Quat q( v );
-	q = *this * q * this->Conjugate();
-
-	const float length = v.Length();
-	v.Normalize();
-	
+	q = *this * q * this->Conjugate();	
 	v[0] = q[0];
 	v[1] = q[1];
 	v[2] = q[2];
-
-	v *= length;
+	v *= v.Length();
 }
 
 /*

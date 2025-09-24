@@ -32,6 +32,8 @@ class Quat {
 
 		void Invert();
 		Quat Inverse() const;
+		Vec3 RotateVector( const Vec3 &v ) const;
+		Vec3 RotateVector_Fast( const Vec3& v ) const;
 		void Rotate( Vec3 & v ) const;
 		float Length() const;
 		float LengthSquared() const;
@@ -40,6 +42,7 @@ class Quat {
 		Quat Conjugate() const;
 		void Slerp( const Quat & qa, const Quat & qb, double t, Quat & qm );
 
+		Vec3 as_Vec3() const { return Vec3( m_data[0], m_data[1], m_data[2] ); }
 		Mat3 as_Mat3() const;
 		Mat4 as_Mat4( const Vec3 &vPosition ) const;
 

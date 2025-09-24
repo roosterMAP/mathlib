@@ -27,18 +27,25 @@ Vec3 BarycentricCoordinates2D(const Vec2& vA, const Vec2& vB, const Vec2& vC, co
 
 Vec3 BarycentricCoordinates3D( const Vec3 &vA, const Vec3 &vB, const Vec3 &vC, const Vec3 &vP )
 {
-	Mat3 m( vA, vB, vC );
-	m.Transpose();
+	const Vec3 v0 = vB - vA;
+	const Vec3 v1 = vC - vA;
+	const Vec3 v2 = vP - vA;
 
-	const float fDeterminant = m.Determinant();
-	if ( fabsf( fDeterminant ) < 1e-6 )
-		return Vec3( -1.0f, -1.0f, -1.0f ); //Degenerate triangle
+	const float d00 = v0.Dot( v0 );
+	const float d01 = v0.Dot( v1 );
+	const float d11 = v1.Dot( v1 );
+	const float d20 = v2.Dot( v0 );
+	const float d21 = v2.Dot( v1 );
 
-	const float fCofactor1 = Mat3( vP, vB, vC ).Determinant();
-	const float fCofactor2 = Mat3( vA, vP, vC ).Determinant();
-	const float fCofactor3 = Mat3( vA, vB, vP ).Determinant();
+	const float denom = d00 * d11 - d01 * d01;
+	if ( fabsf( denom ) < 1e-12f )
+		return Vec3( -1.0f, -1.0f, -1.0f ); // Degenerate triangle
 
-	return Vec3( fCofactor1 / fDeterminant, fCofactor2 / fDeterminant, fCofactor3 / fDeterminant );
+	const float v = (d11 * d20 - d01 * d21) / denom;
+	const float w = (d00 * d21 - d01 * d20) / denom;
+	const float u = 1.0f - v - w;
+
+	return Vec3( u, v, w );
 }
 
 Vec4 BarycentricCoordinates3DTetra( const Vec3 &vA, const Vec3 &vB, const Vec3 &vC, const Vec3 &vD, const Vec3 &vP )
@@ -103,18 +110,19 @@ VecN::VecN( const VecN &vec ) {
 	}
 }
 
-void VecN::operator=( VecN other ) {
-	if ( m_size != other.m_size ) {
-		delete[] m_data;
-		m_data = new float[ other.m_size ];
-	}
+VecN& VecN::operator=( const VecN& rhs )
+{
+	delete[] m_data; // Clean up existing data
 
+	m_size = rhs.m_size;
+	m_data = new float[m_size];
 	for ( unsigned int i = 0; i < m_size; i++ ) {
-		m_data[i] = other.m_data[i];
+		m_data[i] = rhs.m_data[i];
 	}
+	return *this;
 }
 
-bool VecN::operator==( VecN other ) {
+bool VecN::operator==( const VecN &other ) const {
 	if ( m_size != other.m_size ) {
 		return false;
 	}
@@ -127,7 +135,7 @@ bool VecN::operator==( VecN other ) {
 	return true;
 }
 
-VecN VecN::operator+( VecN other ) const {
+VecN VecN::operator+( const VecN &other ) const {
 	assert( m_size == other.m_size );
 	VecN returnVec( m_size );
 	for ( unsigned int i = 0; i < m_size; i++ ) {
@@ -136,7 +144,7 @@ VecN VecN::operator+( VecN other ) const {
 	return returnVec;
 }
 
-void VecN::operator+=( const VecN other ) {
+void VecN::operator+=( const VecN &other ) {
 	assert( m_size == other.m_size );
 	for ( unsigned int i = 0; i < m_size; i++ ) {
 		m_data[i] += other.m_data[i];
@@ -157,7 +165,7 @@ void VecN::operator+=( const float n ) {
 	}
 }
 
-VecN VecN::operator-( VecN other ) const {
+VecN VecN::operator-( const VecN &other ) const {
 	assert( m_size == other.m_size );
 	VecN returnVec( m_size );
 	for ( unsigned int i = 0; i < m_size; i++ ) {
@@ -166,7 +174,7 @@ VecN VecN::operator-( VecN other ) const {
 	return returnVec;
 }
 
-void VecN::operator-=( const VecN other ) {
+void VecN::operator-=( const VecN &other ) {
 	assert( m_size == other.m_size );
 	for ( unsigned int i = 0; i < m_size; i++ ) {
 		m_data[i] -= other.m_data[i];
@@ -201,7 +209,7 @@ void VecN::operator*=( const float n ) {
 	}
 }
 
-VecN VecN::operator*( MatN mat ) const {
+VecN VecN::operator*( const MatN &mat ) const {
 	assert( m_size == mat.RowCount() );
 	const unsigned int colCount = mat.ColumnCount();
 	VecN returnVec( colCount );
@@ -215,7 +223,7 @@ VecN VecN::operator*( MatN mat ) const {
 	return returnVec;
 }
 
-void VecN::operator*=( const MatN mat ) {
+void VecN::operator*=( const MatN &mat ) {
 	assert( m_size == mat.RowCount() );
 	const unsigned int colCount = mat.ColumnCount();
 	float * newData = new float[colCount];
@@ -283,6 +291,12 @@ VecN VecN::Proj( const VecN & other ) {
 float VecN::Angle( const VecN & other ) {
 	const float d = Normal().Dot( other.Normal() );
 	return acosf( d );
+}
+
+void VecN::Zero() {
+	for ( unsigned int i = 0; i < m_size; i++ ) {
+		m_data[i] = 0.0f;
+	}
 }
 
 Vec2 VecN::as_Vec2() const {
@@ -370,7 +384,7 @@ void Vec2::operator=( Vec2 other ) {
 	m_data[1] = other.m_data[1];
 }
 
-bool Vec2::operator==( Vec2 other ) {
+bool Vec2::operator==( const Vec2 &other ) const {
 	if ( m_data[0] != other.m_data[0] ||
 		m_data[1] != other.m_data[1] ) {
 		return false;
@@ -549,6 +563,13 @@ Vec3::Vec3( float x, float y, float z ) {
 	m_data[2] = z;
 }
 
+Vec3::Vec3( const float f, const Vec2& vec )
+{
+	m_data[0] = f;
+	m_data[1] = vec[0];
+	m_data[2] = vec[1];
+}
+
 Vec3::Vec3( const float * data ) {
 	m_data[0] = data[0];
 	m_data[1] = data[1];
@@ -567,7 +588,7 @@ void Vec3::operator=( Vec3 other ) {
 	m_data[2] = other.m_data[2];
 }
 
-bool Vec3::operator==( Vec3 other ) {
+bool Vec3::operator==( const Vec3 & other ) const {
 	if ( m_data[0] != other.m_data[0] ||
 		m_data[1] != other.m_data[1] ||
 		m_data[2] != other.m_data[2] ) {
@@ -576,7 +597,7 @@ bool Vec3::operator==( Vec3 other ) {
 	return true;
 }
 
-Vec3 Vec3::operator+( Vec3 other ) const {
+Vec3 Vec3::operator+( const Vec3& other ) const {
 	Vec3 returnVec;
 	returnVec[0] = m_data[0] + other.m_data[0];
 	returnVec[1] = m_data[1] + other.m_data[1];
@@ -584,7 +605,7 @@ Vec3 Vec3::operator+( Vec3 other ) const {
 	return returnVec;
 }
 
-void Vec3::operator+=( const Vec3 other ) {
+void Vec3::operator+=( const Vec3& other ) {
 	m_data[0] += other.m_data[0];
 	m_data[1] += other.m_data[1];
 	m_data[2] += other.m_data[2];
@@ -604,7 +625,7 @@ void Vec3::operator+=( const float n ) {
 	m_data[2] += n;
 }
 
-Vec3 Vec3::operator-( Vec3 other ) const {
+Vec3 Vec3::operator-( const Vec3 &other ) const {
 	Vec3 returnVec;
 	returnVec[0] = m_data[0] - other.m_data[0];
 	returnVec[1] = m_data[1] - other.m_data[1];
@@ -612,13 +633,13 @@ Vec3 Vec3::operator-( Vec3 other ) const {
 	return returnVec;
 }
 
-void Vec3::operator-=( const Vec3 other ) {
+void Vec3::operator-=( const Vec3 &other ) {
 	m_data[0] -= other.m_data[0];
 	m_data[1] -= other.m_data[1];
 	m_data[2] -= other.m_data[2];
 }
 
-Vec3 Vec3::operator-( float n ) const {
+Vec3 Vec3::operator-( const float n ) const {
 	Vec3 returnVec;
 	returnVec[0] = m_data[0] - n;
 	returnVec[1] = m_data[1] - n;
@@ -646,7 +667,7 @@ void Vec3::operator*=( const float n ) {
 	m_data[2] *= n;
 }
 
-Vec3 Vec3::operator*( MatN mat ) const {
+Vec3 Vec3::operator*( const MatN &mat ) const {
 	assert( mat.RowCount() == 3 );
 	Vec3 returnVec;
 	returnVec[0] = m_data[0] * mat[0] + m_data[1] * mat[3] + m_data[2] * mat[6];
@@ -655,7 +676,7 @@ Vec3 Vec3::operator*( MatN mat ) const {
 	return returnVec;
 }
 
-Vec3 Vec3::operator*( Mat3 mat ) const {
+Vec3 Vec3::operator*( const Mat3 &mat ) const {
 	Vec3 returnVec;
 	returnVec[0] = m_data[0] * mat[0] + m_data[1] * mat[3] + m_data[2] * mat[6];
 	returnVec[1] = m_data[0] * mat[1] + m_data[1] * mat[4] + m_data[2] * mat[7];
@@ -663,7 +684,7 @@ Vec3 Vec3::operator*( Mat3 mat ) const {
 	return returnVec;
 }
 
-Vec3 Vec3::operator*( Mat4 mat ) const {
+Vec3 Vec3::operator*( const Mat4 &mat ) const {
 	Vec3 returnVec;
 	returnVec[0] = m_data[0] * mat[0] + m_data[1] * mat[4] + m_data[2] * mat[8];
 	returnVec[1] = m_data[0] * mat[1] + m_data[1] * mat[5] + m_data[2] * mat[9];
@@ -671,7 +692,7 @@ Vec3 Vec3::operator*( Mat4 mat ) const {
 	return returnVec;
 }
 
-void Vec3::operator*=( const MatN mat ) {
+void Vec3::operator*=( const MatN &mat ) {
 	assert( mat.RowCount() == 3 );
 	const float x = m_data[0] * mat[0] + m_data[1] * mat[3] + m_data[2] * mat[6];
 	const float y = m_data[0] * mat[1] + m_data[1] * mat[4] + m_data[2] * mat[7];
@@ -681,7 +702,7 @@ void Vec3::operator*=( const MatN mat ) {
 	m_data[2] = z;
 }
 
-void Vec3::operator*=( const Mat3 mat ) {
+void Vec3::operator*=( const Mat3 &mat ) {
 	const float x = m_data[0] * mat[0] + m_data[1] * mat[3] + m_data[2] * mat[6];
 	const float y = m_data[0] * mat[1] + m_data[1] * mat[4] + m_data[2] * mat[7];
 	const float z = m_data[0] * mat[2] + m_data[1] * mat[5] + m_data[2] * mat[8];
@@ -690,10 +711,10 @@ void Vec3::operator*=( const Mat3 mat ) {
 	m_data[2] = z;
 }
 
-void Vec3::operator*=( const Mat4 mat ) {
-	const float x = m_data[0] * mat[0] + m_data[1] * mat[4] + m_data[2] * mat[8];
-	const float y = m_data[0] * mat[1] + m_data[1] * mat[5] + m_data[2] * mat[9];
-	const float z = m_data[0] * mat[2] + m_data[1] * mat[6] + m_data[2] * mat[10];
+void Vec3::operator*=( const Mat4 &mat ) {
+	const float x = m_data[0] * mat[0] + m_data[1] * mat[4] + m_data[2] * mat[8] + mat[3];
+	const float y = m_data[0] * mat[1] + m_data[1] * mat[5] + m_data[2] * mat[9] + mat[7];
+	const float z = m_data[0] * mat[2] + m_data[1] * mat[6] + m_data[2] * mat[10] + mat[11];
 	m_data[0] = x;
 	m_data[1] = y;
 	m_data[2] = z;
@@ -729,9 +750,7 @@ Vec3 Vec3::Cross( const Vec3 & other ) const {
 	Vec3 returnVec;
 	returnVec[0] = m_data[1] * other[2] - m_data[2] * other[1];
 	returnVec[1] = m_data[2] * other[0] - m_data[0] * other[2];
-	const float foo_a = other[1];
-	const float foo_b = other[0];
-	returnVec[2] = m_data[0] * foo_a - m_data[1] * foo_b;
+	returnVec[2] = m_data[0] * other[1] - m_data[1] * other[0];
 	return returnVec;
 }
 
@@ -744,6 +763,7 @@ Vec3 Vec3::Normal() const {
 }
 
 void Vec3::Normalize() {
+#if 0
 	float len = LengthSquared();
 	if ( len < EPSILON )
 	{
@@ -756,6 +776,15 @@ void Vec3::Normalize() {
 	m_data[0] /= len;
 	m_data[1] /= len;
 	m_data[2] /= len;
+#else
+	float mag = Length();
+	float invMag = 1.0f / mag;
+	if ( 0.0f * invMag == 0.0f * invMag ) {
+		m_data[0] *= invMag;
+		m_data[1] *= invMag;
+		m_data[2] *= invMag;
+	}
+#endif
 }
 
 Vec3 Vec3::Proj( const Vec3 & other ) {
@@ -766,6 +795,44 @@ Vec3 Vec3::Proj( const Vec3 & other ) {
 float Vec3::Angle( const Vec3 & other ) {
 	const float d = Normal().Dot( other.Normal() );
 	return acosf( d );
+}
+
+bool Vec3::AlmostEqual( const Vec3& other, float epsilon ) const
+{
+	return (*this - other).LengthSquared() < epsilon;
+}
+
+Vec3 Vec3::GetOrthogonal() const
+{
+	Vec3 n = *this;
+	n.Normalize();
+
+	const Vec3 w = (n[2] * n[2] > 0.9f * 0.9f) ? Vec3(1, 0, 0) : Vec3(0, 0, 1);
+	Vec3 u = w.Cross( n );
+	u.Normalize();
+
+	Vec3 v = n.Cross( u );
+	v.Normalize();
+	u = v.Cross( n );
+	u.Normalize();
+	return u;
+
+	/*
+	float f = ( *this )[1] / ( *this )[2] * -1.0f;
+	if ( f == 0.0f )
+		return (*this)[0] / (*this)[2] * -1.0f;
+	return f;
+	*/
+}
+
+bool Vec3::IsValid() const {
+	for ( int i = 0; i < 3; i++ ) {
+		if ( m_data[ i ] * 0.0f != m_data[ i ] * 0.0f ) {
+			// is NaN or Inf
+			return false;
+		}
+	}
+	return true;
 }
 
 VecN Vec3::as_VecN() const {
@@ -812,6 +879,7 @@ Vec4::Vec4( const Vec3 &v, float w )
 	m_data[3] = w;
 }
 
+
 Vec4::Vec4( const float * data ) {
 	m_data[0] = data[0];
 	m_data[1] = data[1];
@@ -826,6 +894,13 @@ Vec4::Vec4( const Vec4 &vec ) {
 	m_data[3] = vec.m_data[3];
 }
 
+Vec4::Vec4( const float f, const Vec3& vec ) {
+	m_data[0] = f;
+	m_data[1] = vec[0];
+	m_data[2] = vec[1];
+	m_data[3] = vec[2];
+}
+
 void Vec4::operator=( Vec4 other ) {
 	m_data[0] = other.m_data[0];
 	m_data[1] = other.m_data[1];
@@ -833,7 +908,7 @@ void Vec4::operator=( Vec4 other ) {
 	m_data[3] = other.m_data[3];
 }
 
-bool Vec4::operator==( Vec4 other ) {
+bool Vec4::operator==( const Vec4 &other ) const {
 	if ( m_data[0] != other.m_data[0] ||
 		m_data[1] != other.m_data[1] ||
 		m_data[2] != other.m_data[2] ||
@@ -970,6 +1045,7 @@ Vec4 Vec4::operator/( float n ) const {
 	returnVec[0] = m_data[0] / n;
 	returnVec[1] = m_data[1] / n;
 	returnVec[2] = m_data[2] / n;
+	returnVec[3] = m_data[3] / n;
 	return returnVec;
 }
 
@@ -977,6 +1053,7 @@ void Vec4::operator/=( const float n ) {
 	m_data[0] /= n;
 	m_data[1] /= n;
 	m_data[2] /= n;
+	m_data[3] /= n;
 }
 
 float Vec4::Dot( const Vec4 & other ) const {
