@@ -238,9 +238,9 @@ class Vec4 {
 		float operator[]( int index ) const { return m_data[index]; }
 		float & operator[]( int index ) { return m_data[index]; }
 
-		Vec4 operator+( Vec4 other ) const;
+		Vec4 operator+( const Vec4 &other ) const;
 		Vec4 operator+( float n ) const;
-		void operator+=( const Vec4 other );
+		void operator+=( const Vec4& other );
 		void operator+=( const float n );
 
 		Vec4 operator-( Vec4 other ) const;
@@ -271,6 +271,7 @@ class Vec4 {
 		Vec2 as_Vec2() const;
 		Vec3 as_Vec3() const;
 		Vec3 YZW() const { return Vec3( m_data[1], m_data[2], m_data[3]); }
+		Vec3 XYW() const { return Vec3( m_data[0], m_data[1], m_data[3] ); }
 
 		const float * as_ptr() const { return m_data; }
 

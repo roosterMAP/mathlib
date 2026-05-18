@@ -763,28 +763,13 @@ Vec3 Vec3::Normal() const {
 }
 
 void Vec3::Normalize() {
-#if 0
-	float len = LengthSquared();
-	if ( len < EPSILON )
-	{
-		m_data[0] = 0.0f;
-		m_data[1] = 0.0f;
-		m_data[2] = 0.0f;
-		return;
-	}
-	len = sqrtf( len );
-	m_data[0] /= len;
-	m_data[1] /= len;
-	m_data[2] /= len;
-#else
 	float mag = Length();
 	float invMag = 1.0f / mag;
-	if ( 0.0f * invMag == 0.0f * invMag ) {
+	if ( 0.0f * invMag == 0.0f * invMag ) { //check for NaN
 		m_data[0] *= invMag;
 		m_data[1] *= invMag;
 		m_data[2] *= invMag;
 	}
-#endif
 }
 
 Vec3 Vec3::Proj( const Vec3 & other ) {
@@ -918,7 +903,7 @@ bool Vec4::operator==( const Vec4 &other ) const {
 	return true;
 }
 
-Vec4 Vec4::operator+( Vec4 other ) const {
+Vec4 Vec4::operator+( const Vec4 &other ) const {
 	Vec4 returnVec;
 	returnVec[0] = m_data[0] + other.m_data[0];
 	returnVec[1] = m_data[1] + other.m_data[1];
@@ -927,7 +912,7 @@ Vec4 Vec4::operator+( Vec4 other ) const {
 	return returnVec;
 }
 
-void Vec4::operator+=( const Vec4 other ) {
+void Vec4::operator+=( const Vec4 &other ) {
 	m_data[0] += other.m_data[0];
 	m_data[1] += other.m_data[1];
 	m_data[2] += other.m_data[2];

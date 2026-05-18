@@ -219,6 +219,8 @@ class Mat3 {
 		bool IsOrthogonal() const;
 		bool IsOrthonormal() const;
 
+		static Mat3 Rotate( const float fRadians );
+
 		MatN as_MatN() const;
 		Mat2 as_Mat2() const;
 		Mat4 as_Mat4() const;
@@ -260,7 +262,8 @@ class Mat4 {
 		void SetRowVec( const unsigned int row, const Vec4 * vec );
 
 		Vec4 GetColVec( const unsigned int col ) const;
-		void SetColVec( const unsigned int col, const Vec4 * vec );
+		void SetColVec( const unsigned int col, const Vec4* vec );
+		void SetColVec( const unsigned int col, const Vec4& vec );
 
 		float GetComponent( unsigned int m, unsigned int n ) const;
 		void SetComponent( unsigned int m, unsigned int n, float val );
@@ -296,7 +299,7 @@ class Mat4 {
 		static Mat4 PosRotScl( const Vec3& vPos, const Quat& qRot, const Vec3& vScale );
 		static Mat4 Minkowski();
 
-		void LookAt( const Vec3 look, const Vec3 up, const Vec3 pos );
+		void LookAt( const Vec3 &look, const Vec3 &up, const Vec3 &pos );
 		void Perspective( const float verticalFOV, const float aspect, const float near, const float far );
 		void Orthographic( const float left, const float right, const float bottom, const float top );
 		void Orthographic( const float left, const float right, const float bottom, const float top, const float near, const float far );

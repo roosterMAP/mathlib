@@ -1263,6 +1263,16 @@ bool Mat3::IsOrthonormal() const
 	return true;
 }
 
+Mat3 Mat3::Rotate( const float fRadians )
+{
+	const float s = sinf( fRadians );
+	const float c = cosf( fRadians );
+	const float data[9] = { c, 0.0f, -s,
+							0.0f, 1.0f, 0.0f,
+							s, 0.0f, c };
+	return Mat3( data );
+}
+
 MatN Mat3::as_MatN() const
 {
 	MatN returnMat( 3 );
@@ -1431,10 +1441,19 @@ Vec4 Mat4::GetColVec( const unsigned int col ) const
 void Mat4::SetColVec( const unsigned int col, const Vec4 *vec )
 {
 	assert( col < 4 );
-	m_data[0 * 4 + col] = (*vec)[0];  // row 0
-	m_data[1 * 4 + col] = (*vec)[1];  // row 1
-	m_data[2 * 4 + col] = (*vec)[2];  // row 2
-	m_data[3 * 4 + col] = (*vec)[3];  // row 3
+	m_data[col + 0 * 4] = (*vec)[0];
+	m_data[col + 1 * 4] = (*vec)[1];
+	m_data[col + 2 * 4] = (*vec)[2];
+	m_data[col + 3 * 4] = (*vec)[3];
+}
+
+void Mat4::SetColVec( const unsigned int col, const Vec4& vec )
+{
+	assert( col < 4 );
+	m_data[col + 0 * 4] = vec[0];
+	m_data[col + 1 * 4] = vec[1];
+	m_data[col + 2 * 4] = vec[2];
+	m_data[col + 3 * 4] = vec[3];
 }
 
 float Mat4::GetComponent( unsigned int m, unsigned int n ) const
@@ -1818,11 +1837,11 @@ Vec3 Mat4::GetOffset() const
 	return Vec3( m_data[3], m_data[7], m_data[11]);
 }
 
-void Mat4::LookAt( const Vec3 look, const Vec3 up, const Vec3 pos )
+void Mat4::LookAt( const Vec3 &look, const Vec3 &up, const Vec3 &pos )
 {
-	Vec3 r = up.Cross( look ).Normal();
 	Vec3 d = look.Normal();
-	Vec3 u = up.Normal();
+	Vec3 r = d.Cross( up ).Normal();
+	Vec3 u = r.Cross( d );
 
 	m_data[0] = r[0];
 	m_data[1] = r[1];
