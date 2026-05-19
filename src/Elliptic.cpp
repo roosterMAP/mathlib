@@ -1161,8 +1161,8 @@ void CarlsonForm::Initialize(float e1, const Complex & e2, float e4, float y, fl
 {
 	m_a[0] = e1;
 	m_a[3] = e4;
-	m_g1 = -2.0f * e2.real;
-	m_f1 = e2.real * e2.real + e2.imag * e2.imag;
+	m_g1 = 2.0f * e2.real;
+	m_f1 = e2.MagSqrd();
 
 	m_x = x;
 	m_y = y;
@@ -1205,7 +1205,7 @@ void CarlsonForm::Initialize(float e1, const Complex & e2, float e4, float y, fl
 		for ( unsigned int j = 0; j < 4; ++j )
 		{
 			m_d[i][j] = m_a[i] - m_a[j];
-			m_c[i][j] = sqrtf( 2.0f * m_f1 - m_g1 * ( m_a[i] + m_a[j] ) + 2.0f * m_a[i] * m_a[j]);
+			m_c2[i][j] = 2.0f * m_f1 - m_g1 * ( m_a[i] + m_a[j] ) + 2.0f * m_a[i] * m_a[j];
 		}
 	}
 
@@ -1401,8 +1401,11 @@ float CarlsonForm::I_3c() const
 	}
 	else if (m_case == FormType::ONE_QUADRATIC_FACTOR)
 	{
+		const float c11 = sqrtf( c2( 1, 1 ) );
+		const float c44 = sqrtf( c2( 4, 4 ) );
+
 		// Calrson91( 3.2 )
-		float W2_p = m_M2 - (m_c[0][3] * m_c[0][3] + m_c[0][0] * m_c[3][3]) / d( 1, 4 );
+		float W2_p = m_M2 - (c2( 1, 4 ) + c11 * c44 ) / d(1, 4);
 
 		bool m_YComplex = m_a[3] + m_y < 0.0f;
 		const float RC_sign = m_YComplex ? -1.0f : 1.0f;
@@ -1412,8 +1415,8 @@ float CarlsonForm::I_3c() const
 		float RC_PQ = Carlson_RC( m_P2, m_Q2 ) * RC_sign;
 		float RF = Carlson_RF( m_M2, m_L2_n, m_L2_p );
 		float RJ = Carlson_RJ( m_M2, m_L2_n, m_L2_p, W2_p );
-		float term1 = (2.0f * m_c[0][0]) / (3.0f * m_c[3][3]);
-		float term2 = RJ * (-4.0f / d( 1, 4 ) * (m_c[0][3] * m_c[0][3] + m_c[0][0] * m_c[3][3])) - RF * 6.0F + RC_UW * 3.0f;
+		float term1 = (2.0f * c11) / (3.0f * c44);
+		float term2 = RJ * (-4.0f / d( 1, 4 ) * (c2( 1, 4 ) + c11 * c44)) - RF * 6.0F + RC_UW * 3.0f;
 		float term3 = RC_PQ * 2.0f;
 		float I_3c = term1 * term2 + term3;
 
@@ -1429,12 +1432,12 @@ float CarlsonForm::K_2c_quadratic() const
 	if (m_x == INFINITY)
 	{
 		// Carlson91(3.12) in K term we must solve for A(-1,1,1,-2)
-		const float A_m1m1m10 = -1.0f / (m_Y1 * m_n1);
-		const float A_m1m110 = -m_Y3 / ( m_Y1 * m_Y2 );
-		const float A_m1m1m1m2 = -1.0f / (m_Y1 * m_n1 * m_Y4_2);
-		const float A_m1m11m2 = m_d[2][3] * A_m1m1m1m2 + A_m1m1m10;
-		const float A_m111m2 = m_d[1][3] * A_m1m11m2 + A_m1m110;
-		A = A_m111m2;
+		// Cannot apply standard recurance relation with inf limit.
+		// Evaluate the limit of A(-1,1,1,-2) as x->inf.
+		float termY = m_n1 / ( m_Y1 * m_Y4_2 );
+		const float degree = -1.0f + 1.0f + -2.0f;
+		float termX = degree < 0.0f ? 0.0f : 1.0f;
+		A = termX - termY;
 
 	} else
 	{
@@ -1443,19 +1446,21 @@ float CarlsonForm::K_2c_quadratic() const
 		lastTerm_N2c = 2.0f / (m_X1 * m_Y1 * m_U);
 	}
 
+	const float c11 = sqrt( c2( 1, 1 ) );
+
 	//Calrson91( 3.5 )
 	float bet1 = m_g1 - 2.0f * m_a[0];
-	float rho = sqrtf( 2.0f ) * m_c[0][0] - bet1;
+	float rho = sqrtf( 2.0f ) * c11 - bet1;
 
-	// Carlson91( 3.11 )
-	float term1 = sqrtf( 8.0f / (9.0f * m_c[0][0] * m_c[0][0]) );
+	// Carlson91( 3.11, 3.17 )
+	float term1 = sqrtf( 8.0f / (9.0f * c2(1,1)) );
 	float RD = Carlson_RD( m_M2, m_L2_n, m_L2_p );
 	float RF = Carlson_RF( m_M2, m_L2_n, m_L2_p );
 	float term2 = RD * 4.0f * rho - RF * 6.0f + 3.0f / m_U;
-	float N_2c = term1 * term2 + lastTerm_N2c;
+	float N_2c = term1 * term2 + lastTerm_N2c; //[-3,-1,-1]
 
 	// Carlson91( 3.12 )
-	float K_2c = N_2c * (m_c[0][0] * m_c[0][0] / 2.0f) - 2.0f * d( 1, 4 ) * A;
+	float K_2c = N_2c * c2(1,1) / 2.0f - 2.0f * d( 1, 4 ) * A;
 
 	return K_2c;
 }
@@ -1516,7 +1521,7 @@ void CarlsonForm::W2()
 	else if (m_case == FormType::ONE_QUADRATIC_FACTOR)
 	{
 		//Carlson91(3.3)
-		m_W2 = m_U * m_U - m_c[0][0] * m_c[0][0] / (2.0f * d( 1, 4 ));
+		m_W2 = m_U * m_U - c2(1,1) / (2.0f * d( 1, 4 ));
 		return;
 	}
 }
@@ -1550,7 +1555,7 @@ void CarlsonForm::P2()
 	else if (m_case == FormType::ONE_QUADRATIC_FACTOR)
 	{
 		//Carlson91(3.4)
-		m_P2 = m_Q2 + m_c[3][3] * m_c[3][3] / 2.0f / d( 1, 4 );
+		m_P2 = m_Q2 + c2(4,4) / 2.0f / d( 1, 4 );
 		return;
 	}
 }
@@ -1577,8 +1582,9 @@ void CarlsonForm::L2()
 {
 	//Carlson91(3.2)
 	float bet1 = m_g1 - 2.0f * m_a[0];
-	m_L2_p = m_M2 - bet1 + sqrtf( 2.0f ) * m_c[0][0];
-	m_L2_n = m_M2 - bet1 - sqrtf( 2.0f ) * m_c[0][0];
+	const float c11 = sqrtf( c2(1,1) );
+	m_L2_p = m_M2 - bet1 + sqrtf( 2.0f ) * c11;
+	m_L2_n = m_M2 - bet1 - sqrtf( 2.0f ) * c11;
 }
 
 float CarlsonForm::RF() const
@@ -1659,22 +1665,40 @@ bool ValidateCarlsonSymmetricForms()
 		-0.53436f
 	);
 
+	//Cubic
+	//Integrate[Divide[1,\(40)4+t\(41)Sqrt[\(40)1+t\(41)\(40)2+t\(41)\(40)3+t\(41)]],{t,3.5,∞}]
+	form.Initialize( 1.0f, 2.0f, 3.0f, 4.0f, 3.5f, INFINITY );
+	float fm1_inf = (form.I_3c() - form.I_1c()) / form.d( 1, 4 );
+	ok &= FloatEqual(
+		fm1_inf,
+		0.0429883f
+	);
+
 	//One Quadratic Factor
-	//Integrate[Divide[1,\(40)4+t\(41)Sqrt[\(40)1+t\(41)\(40)3 - 2t + Power[t,2]\(41)]],{t,3.5,3.8}]
+	//Integrate[Divide[1,\(40)4+t\(41)Sqrt[\(40)1+t\(41)\(40)3 + 2t + Power[t,2]\(41)]],{t,3.5,3.8}]
 	form.Initialize( 1.0f, Complex( 1.0f, sqrtf( 2.0f ) ), 4.0f, 3.5f, 3.8f );
 	float fm3 = (form.I_3c() - form.I_1c()) / form.d( 1, 4 );
 	ok &= FloatEqual(
 		fm3,
-		0.00606313f
+		0.00374543f
 	);
 
 	//One Quadratic Factor
-	//Integrate[Divide[1,\(40)-4+t\(41)Sqrt[\(40)-1+t\(41)\(40)3 + 2t + Power[t,2]\(41)]],{t,3.5,3.8}]
+	//Integrate[Divide[1,\(40)-4+t\(41)Sqrt[\(40)-1+t\(41)\(40)3 - 2t + Power[t,2]\(41)]],{t,3.5,3.8}]
 	form.Initialize( -1.0f, Complex( 1.0f, sqrtf( 2.0f ) ) * -1.0f, -4.0f, 3.5f, 3.8f );
 	float fm4 = (form.I_3c() - form.I_1c()) / form.d( 1, 4 );
 	ok &= FloatEqual(
 		fm4,
-		-0.114917f
+		-0.185616f
+	);
+
+	//One Quadratic Factor
+	//Integrate[Divide[1,\(40)4+t\(41)Sqrt[\(40)1+t\(41)\(40)3 + 2t + Power[t,2]\(41)]],{t,3.5,∞}]
+	form.Initialize( 1.0f, Complex( 1.0f, sqrtf( 2.0f ) ), 4.0f, 3.5f, INFINITY );
+	float fm3_inf = (form.I_3c() - form.I_1c()) / form.d( 1, 4 );
+	ok &= FloatEqual(
+		fm3_inf,
+		0.0497835f
 	);
 
 
@@ -1702,7 +1726,6 @@ bool ValidateCarlsonSymmetricForms()
 	form.Initialize( -1.0f, -2.0f, -3.0f, -4.0f, 3.1f, 3.8f );
 	float fm6;
 	{
-		form.Initialize( 1.0f, 2.0f, 3.0f, 4.0, 3.0f, 8.0f );
 		const float I3c_term = form.I_3c() / (2.0f * form.d( 1, 4 )) * (1.0f / form.r( 1, 4 ) + 1.0f / form.r( 2, 4 ) + 1.0f / form.r( 3, 4 ));
 		const float K2c_term = form.K_2c() / (2.0f * form.d( 1, 4 ) * form.d( 2, 4 ) * form.d( 3, 4 ));
 		const float I1c_term = form.I_1c() * (1.0f - form.r( 1, 2 ) * form.r( 1, 3 ) / (2.0f * form.r( 2, 4 ) * form.r( 3, 4 ))) / (form.d( 1, 4 ) * form.d( 1, 4 ));
@@ -1713,17 +1736,31 @@ bool ValidateCarlsonSymmetricForms()
 		2.63298f
 	);
 
+	//Cubic
+	//Integrate[Divide[1,Square[\(40)4+t\(41)]Sqrt[\(40)1+t\(41)\(40)2+t\(41)\(40)3+t\(41)]],{t,0,∞}]
+	form.Initialize( 1.0f, 2.0f, 3.0f, 4.0f, 0.0f, INFINITY );
+	float fm5_inf;
+	{
+		const float I3c_term = form.I_3c() / (2.0f * form.d( 1, 4 )) * (1.0f / form.r( 1, 4 ) + 1.0f / form.r( 2, 4 ) + 1.0f / form.r( 3, 4 ));
+		const float K2c_term = form.K_2c() / (2.0f * form.d( 1, 4 ) * form.d( 2, 4 ) * form.d( 3, 4 ));
+		const float I1c_term = form.I_1c() * (1.0f - form.r( 1, 2 ) * form.r( 1, 3 ) / (2.0f * form.r( 2, 4 ) * form.r( 3, 4 ))) / (form.d( 1, 4 ) * form.d( 1, 4 ));
+		fm5_inf = -I3c_term + K2c_term + I1c_term;
+	}
+	ok &= FloatEqual(
+		fm5_inf,
+		0.0271635f
+	);
+
 	//One Quadratic Factor
-	//Integrate[Divide[1,Square[\(40)4+t\(41)]Sqrt[\(40)1+t\(41)\(40)2+t\(41)\(40)3+t\(41)]],{t,0,8}]
+	//Integrate[Divide[1,Square[\(40)4+t\(41)]Sqrt[\(40)1+t\(41)\(40)3 + 2t + Power[t,2]\(41)]],{t,0.0,8.0}]
 	form.Initialize( 1.0f, Complex( 1.0f, sqrtf( 2.0f ) ), 4.0f, 0.0f, 8.0f );
 	float fm7;
 	{
-		const float a1 = form.a( 1 );
-		const float a4 = form.a( 4 );
+		// Carlson91(4.13)
 		const float d14 = form.d( 1, 4 );
-		float d24d34 = a4 * a4 + a4 * form.g() + form.f();
-		float r123 = 1.0f / d14 - (form.g() + 2.0f * a4) / d24d34;
-		float d12d13 = a1 * a1 + a1 * form.g() + form.f();
+		float d12d13 = form.c2( 1, 1 ) / 2.0f;
+		float d24d34 = form.c2( 4, 4 ) / 2.0f;
+		float r123 = 1.0f / d14 + (form.g() - 2.0f * form.a( 4 )) / d24d34;
 
 		const float I3c_term = form.I_3c() / (2.0f * d14) * r123;
 		const float K2c_term = form.K_2c() / (2.0f * d14 * d24d34);
@@ -1732,7 +1769,49 @@ bool ValidateCarlsonSymmetricForms()
 	}
 	ok &= FloatEqual(
 		fm7,
-		0.0261882f
+		0.0362151f
+	);
+
+	//One Quadratic Factor
+	//Integrate[Divide[1,Square[\(40)-4+t\(41)]Sqrt[\(40)-1+t\(41)\(40)3 - 2t + Power[t,2]\(41)]],{t,5.5,8.0}]
+	form.Initialize( -1.0f, Complex( 1.0f, sqrtf( 2.0f ) ) * -1.0f, -4.0f, 5.5f, 8.0f );
+	float fm8;
+	{
+		// Carlson91(4.13)
+		const float d14 = form.d( 1, 4 );
+		float d12d13 = form.c2( 1, 1 ) / 2.0f;
+		float d24d34 = form.c2( 4, 4 ) / 2.0f;
+		float r123 = 1.0f / d14 + (form.g() - 2.0f * form.a( 4 )) / d24d34;
+
+		const float I3c_term = form.I_3c() / (2.0f * d14) * r123;
+		const float K2c_term = form.K_2c() / (2.0f * d14 * d24d34);
+		const float I1c_term = form.I_1c() * (1.0f - d12d13 / (2.0f * d24d34)) / (d14 * d14);
+		fm8 = -I3c_term + K2c_term + I1c_term;
+	}
+	ok &= FloatEqual(
+		fm8,
+		0.0333441f
+	);
+
+	//One Quadratic Factor
+	//Integrate[Divide[1,Square[\(40)4+t\(41)]Sqrt[\(40)1+t\(41)\(40)3 + 2t + Power[t,2]\(41)]],{t,0.0,8.0}]
+	form.Initialize( 1.0f, Complex( 1.0f, sqrtf( 2.0f ) ), 4.0f, 0.0f, INFINITY );
+	float fm7_inf;
+	{
+		// Carlson91(4.13)
+		const float d14 = form.d( 1, 4 );
+		float d12d13 = form.c2( 1, 1 ) / 2.0f;
+		float d24d34 = form.c2( 4, 4 ) / 2.0f;
+		float r123 = 1.0f / d14 + (form.g() - 2.0f * form.a( 4 )) / d24d34;
+
+		const float I3c_term = form.I_3c() / (2.0f * d14) * r123;
+		const float K2c_term = form.K_2c() / (2.0f * d14 * d24d34);
+		const float I1c_term = form.I_1c() * (1.0f - d12d13 / (2.0f * d24d34)) / (d14 * d14);
+		fm7_inf = -I3c_term + K2c_term + I1c_term;
+	}
+	ok &= FloatEqual(
+		fm7_inf,
+		0.0372934f
 	);
 
 	return ok;

@@ -305,6 +305,7 @@ public:
 	float SIGMA() const;
 
 	float a( int i ) const { return m_a[i-1]; }
+	float c2( int i, int j ) const { return m_c2[i-1][j-1]; }
 	float d( int i, int j ) const { return m_d[i-1][j-1]; }
 	float r( int i, int j ) const { return m_d[i-1][j-1]; } //same as d because b_i=1
 	float g() const { return m_g1; }
@@ -338,7 +339,7 @@ private:
 	float m_U; //only used for casis with one quadratic factor
 
 	float m_d[4][4];
-	float m_c[4][4];
+	float m_c2[4][4];
 	float m_e1, m_n1;
 	float m_e2, m_n2;
 
