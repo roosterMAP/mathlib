@@ -215,6 +215,8 @@ class Mat3 {
 		Mat3 Inverse() const;
 		Mat3 Transpose() const;
 		void Transposed();
+		Mat3 Antisymmetrize() const;
+		void LookAt( const Vec3& look, const Vec3& up);
 
 		bool IsOrthogonal() const;
 		bool IsOrthonormal() const;
@@ -244,7 +246,7 @@ class Mat4 {
 	public:
 		Mat4();
 		Mat4( float v );
-		Mat4( const Vec4 &vA, const Vec4 &vB, const Vec4 &vC, const Vec4 &vD );
+		Mat4( const Vec4& vA, const Vec4& vB, const Vec4& vC, const Vec4& vD ); //init by column vectors
 		Mat4( const float * data );
 		Mat4( const double* data );
 		~Mat4() {};

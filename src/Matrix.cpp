@@ -1226,6 +1226,32 @@ void Mat3::Transposed()
 	}
 }
 
+Mat3 Mat3::Antisymmetrize() const
+{
+	return ( *this - Transpose() ) / 2.0f;
+}
+
+void Mat3::LookAt( const Vec3& look, const Vec3& up )
+{
+	//world->camera transform
+
+	Vec3 d = look.Normal();
+	Vec3 r = d.Cross( up ).Normal();
+	Vec3 u = r.Cross( d );
+
+	m_data[0] = r[0];
+	m_data[1] = r[1];
+	m_data[2] = r[2];
+
+	m_data[3] = u[0];
+	m_data[4] = u[1];
+	m_data[5] = u[2];
+
+	m_data[6] = d[0];
+	m_data[7] = d[1];
+	m_data[8] = d[2];
+}
+
 bool Mat3::IsOrthogonal() const
 {
 	Vec3 vCol1 = GetColVec( 0 );
@@ -1837,7 +1863,7 @@ Vec3 Mat4::GetOffset() const
 	return Vec3( m_data[3], m_data[7], m_data[11]);
 }
 
-void Mat4::LookAt( const Vec3 &look, const Vec3 &up, const Vec3 &pos )
+void Mat4::LookAt( const Vec3& look, const Vec3& up, const Vec3& pos )
 {
 	Vec3 d = look.Normal();
 	Vec3 r = d.Cross( up ).Normal();
@@ -1868,24 +1894,24 @@ void Mat4::Perspective( const float verticalFOV, const float aspect, const float
 {
 	const float tanHalfFOV = tanf( verticalFOV / 2.0f );
 
-	m_data[0] = 1.0f / ( tanHalfFOV * aspect );
-	m_data[4] = 0.0f;
-	m_data[8] = 0.0f;
-	m_data[12] = 0.0f;
-
+	m_data[0] = 1.0f / (tanHalfFOV * aspect);
 	m_data[1] = 0.0f;
-	m_data[5] = 1.0f / tanHalfFOV;
-	m_data[9] = 0.0f;
-	m_data[13] = 0.0f;
-
 	m_data[2] = 0.0f;
-	m_data[6] = 0.0f;
-	m_data[10] = (-far - near) / (far - near);
-	m_data[14] = (-2.0f * far * near) / (far - near);
-
 	m_data[3] = 0.0f;
+
+	m_data[4] = 0.0f;
+	m_data[5] = 1.0f / tanHalfFOV;
+	m_data[6] = 0.0f;
 	m_data[7] = 0.0f;
-	m_data[11] = -1.0f;
+
+	m_data[8] = 0.0f;
+	m_data[9] = 0.0f;
+	m_data[10] = (-far - near) / (far - near);
+	m_data[11] = (-2.0f * far * near) / (far - near);
+
+	m_data[12] = 0.0f;
+	m_data[13] = 0.0f;
+	m_data[14] = -1.0f;
 	m_data[15] = 0.0f;
 }
 
