@@ -1821,15 +1821,7 @@ Mat4 Mat4::Transpose() const
 
 void Mat4::Transposed()
 {
-	for ( unsigned int i = 0; i < 4; i++ )
-	{
-		for ( unsigned int j = 0; j < 4; j++ )
-		{
-			float temp = m_data[j * 4 + i];
-			m_data[j * 4 + i] = m_data[i * 4 + j];
-			m_data[i * 4 + j] = temp;
-		}
-	}
+	*this = Transpose();
 }
 
 void Mat4::Translate( const Vec3 &vPosition )
@@ -1879,10 +1871,10 @@ void Mat4::LookAt( const Vec3& look, const Vec3& up, const Vec3& pos )
 	m_data[6] = u[2];
 	m_data[7] = -u.Dot( pos );
 
-	m_data[8] = d[0];
-	m_data[9] = d[1];
-	m_data[10] = d[2];
-	m_data[11] = -d.Dot( pos );
+	m_data[8] = -d[0];
+	m_data[9] = -d[1];
+	m_data[10] = -d[2];
+	m_data[11] = d.Dot( pos );
 
 	m_data[12] = 0.0f;
 	m_data[13] = 0.0f;
