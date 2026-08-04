@@ -201,6 +201,7 @@ class Vec3 {
 		bool AlmostEqual( const Vec3& other, float epsilon = EPSILON ) const;
 		Vec3 GetOrthogonal() const;
 		bool IsValid() const;
+		void Zero() { m_data[0] = 0.0f; m_data[1] = 0.0f; m_data[2] = 0.0f; }
 
 		VecN as_VecN() const;
 		Vec2 as_Vec2() const;
@@ -210,7 +211,6 @@ class Vec3 {
 		static Vec3 X() { return Vec3( 1.0f, 0.0f, 0.0f ); }
 		static Vec3 Y() { return Vec3( 0.0f, 1.0f, 0.0f ); }
 		static Vec3 Z() { return Vec3( 0.0f, 0.0f, 1.0f ); }
-		static Vec3 Zero() { return Vec3( 0.0f, 0.0f, 0.0f ); }
 	
 		const float * as_ptr() const { return m_data; }
 
